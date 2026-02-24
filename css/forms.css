@@ -17,17 +17,17 @@
     width: 1px;
     height: 1px;
 }
-form {
+form.uni-style {
     width: 639px;
     font-size: 16px;
 }
-form .form-field {
+form.uni-style .form-field {
     padding: 8px;
     flex-basis: 50%;
     flex-grow: 1;
 }
 
-form .form-field label {
+form.uni-style .form-field label {
     left: 16px;
     font-size: 1.125em;
     margin-bottom: 0;
@@ -37,8 +37,8 @@ form .form-field label {
     font-weight: normal;
 }
 
-form .form-field input,
-form .form-field select {
+form.uni-style .form-field input,
+form.uni-style .form-field select {
     font-size: 1.125em;
     height: 56px;
     background-color: var(--white);
@@ -48,11 +48,11 @@ form .form-field select {
     border-radius: 12px;
 }
 
-form .form-field select {
+form.uni-style .form-field select {
     background-image: none;
 }
 
-form .form-field .select_box:after {
+form.uni-style .form-field .select_box:after {
     content: "";
     display: block;
     width: 17px;
@@ -69,36 +69,36 @@ form .form-field .select_box:after {
 }
 
 @-moz-document url-prefix() {
-    form .form-field select {
+    form.uni-style .form-field select {
         text-indent: 0.5em;
     }
 }
 
-form .form-field select.selected,
-form .form-field input {
+form.uni-style .form-field select.selected,
+form.uni-style .form-field input {
     color: var(--black);
 }
 
-form .form-field select,
-form .form-field ::placeholder {
+form.uni-style .form-field select,
+form.uni-style .form-field ::placeholder {
     opacity: 1;
     color: #262626;
 }
 
-form .form-field input:-internal-autofill-selected,
-form .form-field input:-webkit-autofill,
-form .form-field input:-webkit-autofill:focus {
+form.uni-style .form-field input:-internal-autofill-selected,
+form.uni-style .form-field input:-webkit-autofill,
+form.uni-style .form-field input:-webkit-autofill:focus {
     background-color: #fff !important;
     transition: background-color 0s 600000s, color 0s 600000s !important;
 }
 
-form .form-action [type="submit"].button[disabled] {
+form.uni-style .form-action [type="submit"].button[disabled] {
     opacity: 0.8;
     cursor: not-allowed;
 }
 
-form .form-field .validation-error:before,
-form .form-field .incomplete-mask:before {
+form.uni-style .form-field .validation-error:before,
+form.uni-style .form-field .incomplete-mask:before {
     content: "";
     display: block;
     width: 23px;
@@ -115,51 +115,51 @@ form .form-field .incomplete-mask:before {
     pointer-events: none;
 }
 
-form .form-field .validation-error select,
-form .form-field .validation-error input,
-form .form-field .incomplete-mask input {
+form.uni-style .form-field .validation-error select,
+form.uni-style .form-field .validation-error input,
+form.uni-style .form-field .incomplete-mask input {
     border-color: var(--error-border);
     border-width: 2px;
 }
 
-form .form-field .validation-error label,
-form .form-field .incomplete-mask label {
+form.uni-style .form-field .validation-error label,
+form.uni-style .form-field .incomplete-mask label {
     color: var(--error-color);
 }
 
-form .form-field .select_box.focused:after {
+form.uni-style .form-field .select_box.focused:after {
     transform: scaleY(-1);
 }
 
-form .form-field .focused label,
-form .form-field .has-value label {
+form.uni-style .form-field .focused label,
+form.uni-style .form-field .has-value label {
     font-size: 0.84375em;
     margin-top: calc(-2.9em + 24px);
     color: var(--focus-color);
 }
 
-form .form-field .focused select,
-form .form-field .focused input {
+form.uni-style .form-field .focused select,
+form.uni-style .form-field .focused input {
     border-color: var(--focus-border);
     border-width: 2px;
 }
 @media screen and (max-width: 567px) {
-    form {
+    form.uni-style {
         width: calc(100% - 25px);
         z-index: 1;
         position: relative;
     }
-    form .form-row {
+    form.uni-style .form-row {
         flex-direction: column;
     }
-    form .form-field {
+    form.uni-style .form-field {
         padding: 6px 0;
     }
-    form .form-field label {
+    form.uni-style .form-field label {
         font-size: 1em;
     }
-    form .form-field input,
-    form .form-field select {
+    form.uni-style .form-field input,
+    form.uni-style .form-field select {
         font-size: 1em;
         border-radius: 13px;
     }
