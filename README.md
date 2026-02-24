@@ -337,14 +337,20 @@ WowForm.get('newsletter').destroy();
     <div class="popup-content">
         <div class="popup-default">
             <form method="post" action="/endpoint">
-                <div class="field-wrapper">
-                    <input type="text" name="name" required>
-                </div>
-                <div class="field-wrapper">
-                    <input type="email" name="email" required>
+                <div class="form-row flex">
+                    <div class="form-field">
+                        <div class="field-wrapper">
+                            <input type="text" name="name" required>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <div class="field-wrapper">
+                            <input type="email" name="email" required>
+                        </div>
+                    </div>
                 </div>
                 <div class="captcha"></div>
-                <button type="submit">Submit</button>
+                <button type="submit" disabled>Submit</button>
             </form>
         </div>
         <div class="popup-thanks" style="display: none;">
