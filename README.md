@@ -2,6 +2,19 @@
 
 Lightweight jQuery-based system for managing popups, forms, scroll-locking and reCAPTCHA.
 
+## Table of Contents
+
+- [Dependencies](#dependencies)
+- [WowRecaptcha](#wowrecaptcha)
+- [WowScrollLock](#wowscrolllock)
+- [WowForm](#wowform)
+- [WowPopup](#wowpopup)
+- [template-form.blade.php](#template-formbladephp)
+- [JS Usage Examples](#js-usage-examples)
+- [Expected HTML Structure](#expected-html-structure)
+
+---
+
 ## Dependencies
 
 - jQuery
@@ -176,7 +189,178 @@ Automatically shows the popup after a delay. Skipped if another popup is already
 
 ---
 
-## Usage Examples
+## template-form.blade.php
+
+Reusable Blade partial for rendering lead capture forms. Include anywhere with `@include('partials.template-form', [...])`.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `source` | string | **Yes** | — | Source identifier for the lead (hidden field) |
+| `smart_id` | string | No | `''` | Smart ID for tracking (hidden field) |
+| `action` | string | No | `'/submitLead'` | Form action URL |
+| `hidden_fields` | array | No | `[]` | Additional hidden fields as `['name' => 'value', ...]` |
+| `rows` | array | No | Default fields | Override default field rows entirely |
+| `excluded_fields` | array | No | `[]` | Field names to remove from defaults |
+| `submit_text` | string | No | `'Submit'` | Submit button label |
+| `submit_class` | string | No | `''` | Extra classes on the submit button |
+| `tabindex_start` | int | No | `40` | Starting tabindex |
+
+### Default fields
+
+When `rows` is not provided, the form renders these default rows:
+
+| Row | Fields |
+|---|---|
+| 1 | `first_name` (text, required), `last_name` (text, required) |
+| 2 | `email` (email, required), `phone` (tel, required — auto-masked) |
+| 3 | `store` (select, required — uses `$stores` collection) |
+| 4 | `message` (text) |
+
+### Row / field structure
+
+`rows` is an array of rows. Each row is an array of fields. A row with a single field spans full width; multiple fields share the row equally.
+
+```php
+'rows' => [
+    // Row 1: two fields side by side
+    [
+        ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
+        ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
+    ],
+    // Row 2: single field, full width
+    [
+        ['name' => 'message', 'label' => 'Message'],
+    ],
+]
+```
+
+### Field definition
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | **Required** | Input name attribute |
+| `type` | string | `'text'` | Supports: `text`, `email`, `tel`, `select` |
+| `label` | string | ucwords of `name` | Label text |
+| `required` | bool | `false` | Makes the field required |
+| `options` | array | `[]` | Key-value pairs for `select` type (except `store`, which uses `$stores`) |
+| `inputmask` | string | Auto for `tel` | Inputmask data attribute |
+| `pattern` | string | Auto for `tel` | HTML pattern attribute |
+| `attributes` | string | `''` | Raw extra HTML attributes |
+
+### Built-in behaviour
+
+- `_token` (CSRF), `source`, and `smart_id` hidden fields are always rendered
+- `tel` fields automatically get the mask `(999) 999-9999` and matching pattern
+- The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
+- All other selects use the `options` array from the field definition
+- Every select starts with an empty disabled/hidden placeholder option
+
+### Usage examples
+
+#### All defaults
+
+```blade
+@include('partials.template-form', [
+    'source' => 'contact-page',
+])
+```
+
+#### With smart_id
+
+```blade
+@include('partials.template-form', [
+    'source'   => 'contact-page',
+    'smart_id' => $smart_id,
+])
+```
+
+#### Exclude fields
+
+```blade
+@include('partials.template-form', [
+    'source'          => 'contact-page',
+    'excluded_fields' => ['phone', 'store'],
+])
+```
+
+#### Custom submit button
+
+```blade
+@include('partials.template-form', [
+    'source'       => 'request-page',
+    'submit_text'  => 'Send Request',
+    'submit_class' => 'bg-red white',
+])
+```
+
+#### Extra hidden fields
+
+```blade
+@include('partials.template-form', [
+    'source'        => 'promo-page',
+    'hidden_fields' => ['campaign' => 'summer-sale', 'ref' => 'banner'],
+])
+```
+
+#### Custom action
+
+```blade
+@include('partials.template-form', [
+    'source' => 'inquiry-page',
+    'action' => '/custom-endpoint',
+])
+```
+
+#### Fully custom rows
+
+```blade
+@include('partials.template-form', [
+    'source' => 'quote-page',
+    'rows'   => [
+        [
+            ['name' => 'company', 'label' => 'Company Name', 'required' => true],
+            ['name' => 'website', 'label' => 'Website'],
+        ],
+        [
+            ['name' => 'budget', 'label' => 'Budget', 'type' => 'number'],
+        ],
+    ],
+])
+```
+
+#### Custom select in custom rows
+
+```blade
+@include('partials.template-form', [
+    'source' => 'feedback-page',
+    'rows'   => [
+        [
+            ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
+            ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
+        ],
+        [
+            ['name' => 'department', 'type' => 'select', 'label' => 'Department', 'required' => true,
+             'options' => ['sales' => 'Sales', 'support' => 'Support', 'other' => 'Other']],
+        ],
+    ],
+])
+```
+
+#### Custom tabindex start (multiple forms on one page)
+
+```blade
+@include('partials.template-form', [
+    'source'          => 'sidebar',
+    'tabindex_start'  => 80,
+    'excluded_fields' => ['message', 'store'],
+])
+```
+
+---
+
+## JS Usage Examples
 
 ### Standalone form (no popup)
 
@@ -337,20 +521,14 @@ WowForm.get('newsletter').destroy();
     <div class="popup-content">
         <div class="popup-default">
             <form method="post" action="/endpoint">
-                <div class="form-row flex">
-                    <div class="form-field">
-                        <div class="field-wrapper">
-                            <input type="text" name="name" required>
-                        </div>
-                    </div>
-                    <div class="form-field">
-                        <div class="field-wrapper">
-                            <input type="email" name="email" required>
-                        </div>
-                    </div>
+                <div class="field-wrapper">
+                    <input type="text" name="name" required>
+                </div>
+                <div class="field-wrapper">
+                    <input type="email" name="email" required>
                 </div>
                 <div class="captcha"></div>
-                <button type="submit" disabled>Submit</button>
+                <button type="submit">Submit</button>
             </form>
         </div>
         <div class="popup-thanks" style="display: none;">
