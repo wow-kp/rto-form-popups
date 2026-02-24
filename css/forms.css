@@ -1,0 +1,166 @@
+:root {
+    --focus-border: #000;
+    --focus-color: #79797b;
+    --error-border: #e32e22;
+    --error-color: #e32e22;
+}
+.tracking_promo_success {
+    width: 1px;
+    height: 1px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.promo_image {
+    width: 1px;
+    height: 1px;
+}
+form {
+    width: 639px;
+    font-size: 16px;
+}
+form .form-field {
+    padding: 8px;
+    flex-basis: 50%;
+    flex-grow: 1;
+}
+
+form .form-field label {
+    left: 16px;
+    font-size: 1.125em;
+    margin-bottom: 0;
+    line-height: 1;
+    margin-top: 0.3em;
+    transition: all 0.3s;
+    font-weight: normal;
+}
+
+form .form-field input,
+form .form-field select {
+    font-size: 1.125em;
+    height: 56px;
+    background-color: var(--white);
+    width: 100%;
+    text-indent: 1em;
+    padding-top: 18px;
+    border-radius: 12px;
+}
+
+form .form-field select {
+    background-image: none;
+}
+
+form .form-field .select_box:after {
+    content: "";
+    display: block;
+    width: 17px;
+    height: 10px;
+    position: absolute;
+    right: 15px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url(../../../images/down-arrow.png);
+    background-image: -webkit-image-set(url("../../../images/down-arrow.png") 1x,
+            url("../../../images/down-arrow@2x.png") 2x);
+    background-size: cover;
+    pointer-events: none;
+}
+
+@-moz-document url-prefix() {
+    form .form-field select {
+        text-indent: 0.5em;
+    }
+}
+
+form .form-field select.selected,
+form .form-field input {
+    color: var(--black);
+}
+
+form .form-field select,
+form .form-field ::placeholder {
+    opacity: 1;
+    color: #262626;
+}
+
+form .form-field input:-internal-autofill-selected,
+form .form-field input:-webkit-autofill,
+form .form-field input:-webkit-autofill:focus {
+    background-color: #fff !important;
+    transition: background-color 0s 600000s, color 0s 600000s !important;
+}
+
+form .form-action [type="submit"].button[disabled] {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+form .form-field .validation-error:before,
+form .form-field .incomplete-mask:before {
+    content: "";
+    display: block;
+    width: 23px;
+    height: 23px;
+    position: absolute;
+    z-index: 2;
+    right: 40px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url(../../../images/error.png);
+    background-image: -webkit-image-set(url("../../../images/error.png") 1x,
+            url("../../../images/error@2x.png") 2x);
+    background-size: cover;
+    pointer-events: none;
+}
+
+form .form-field .validation-error select,
+form .form-field .validation-error input,
+form .form-field .incomplete-mask input {
+    border-color: var(--error-border);
+    border-width: 2px;
+}
+
+form .form-field .validation-error label,
+form .form-field .incomplete-mask label {
+    color: var(--error-color);
+}
+
+form .form-field .select_box.focused:after {
+    transform: scaleY(-1);
+}
+
+form .form-field .focused label,
+form .form-field .has-value label {
+    font-size: 0.84375em;
+    margin-top: calc(-2.9em + 24px);
+    color: var(--focus-color);
+}
+
+form .form-field .focused select,
+form .form-field .focused input {
+    border-color: var(--focus-border);
+    border-width: 2px;
+}
+@media screen and (max-width: 567px) {
+    form {
+        width: calc(100% - 25px);
+        z-index: 1;
+        position: relative;
+    }
+    form .form-row {
+        flex-direction: column;
+    }
+    form .form-field {
+        padding: 6px 0;
+    }
+    form .form-field label {
+        font-size: 1em;
+    }
+    form .form-field input,
+    form .form-field select {
+        font-size: 1em;
+        border-radius: 13px;
+    }
+}
