@@ -29,8 +29,9 @@ WowRecaptcha.init('your-sitekey-here');
 |---|---|
 | `init(sitekey)` | Set the sitekey and start observing forms |
 | `isLoaded()` | Returns `true` if the reCAPTCHA script has loaded |
+| `load()` | Manually trigger script loading (called automatically by WowPopup on show) |
 | `renderForms()` | Render captcha on all unrendered `form[method="post"]` with `.captcha` |
-| `onLoad()` | Callback for the reCAPTCHA script — not called manually |
+| `onLoad()` | Internal callback for the reCAPTCHA script — not called manually |
 
 ---
 
@@ -83,6 +84,10 @@ new WowForm(name, options);
 | `WowForm.get(name)` | Static. Returns the WowForm instance by name, or `null` |
 | `reset()` | Reset the form, field states and captcha |
 | `destroy()` | Unbind all events and remove from registry |
+
+#### Server response
+
+The form expects a JSON response from the server. A successful response must include `{ "success": true }`. Any other response triggers the error flow.
 
 #### Example
 
@@ -167,6 +172,7 @@ Automatically shows the popup after a delay. Skipped if another popup is already
 - Clicking `.toggle-{name}-popup` (and any `toggleClasses`) toggles the popup
 - Clicking `.popup-close` inside the popup hides it
 - `WowScrollLock.lock()` is called on show, `unlock()` on hide
+- Patches jQuery's `.show()`, `.hide()`, `.toggle()` to fire events — so calling `$('#popup-march').toggle()` from external code is automatically captured. Scroll lock, `_active` tracking and `.popup-close` all work regardless of how the popup was shown
 
 ---
 
