@@ -267,6 +267,29 @@ var WowForm = (function () {
         $form.removeClass('captcha-executed');
     };
 
+    WowForm.prototype.set = function (key, value) {
+        this.options[key] = value;
+
+        switch (key) {
+            case 'containerId':
+                var oldName = this.name;
+                this.destroy();
+                this.name = oldName;
+                this.containerId = value;
+                this._init();
+                _instances[oldName] = this;
+                break;
+
+            case 'beforePost':
+            case 'onSuccess':
+            case 'onError':
+                // Read directly from this.options at runtime, no reinit needed
+                break;
+        }
+
+        return this;
+    };
+
     WowForm.prototype.destroy = function () {
         $(document).off('.' + this.name);
         $(this.containerId + ' [type="email"]').each(function () {
@@ -419,6 +442,43 @@ var WowPopup = (function () {
         if (typeof this.options.onHide === 'function') {
             this.options.onHide(this);
         }
+    };
+
+    WowPopup.prototype.set = function (key, value) {
+        this.options[key] = value;
+
+        switch (key) {
+            case 'form':
+                var oldFormName = this._getFormName();
+                var oldForm = WowForm.get(oldFormName);
+                if (oldForm) oldForm.destroy();
+                if (value) this._initForm();
+                break;
+
+            case 'toggleClasses':
+                $(document).off('click.' + this.name, this.toggleClass);
+                this.toggleClass = '.toggle-' + this.name + '-popup';
+                if (value) this.toggleClass += ', ' + value;
+                var self = this;
+                $(document).on('click.' + self.name, self.toggleClass, function (e) {
+                    e.preventDefault();
+                    $(self.popupId).is(':visible') ? self.hide() : self.show();
+                });
+                break;
+
+            case 'autoShow':
+                this._initAutoShow();
+                break;
+
+            case 'onShow':
+            case 'onHide':
+            case 'resetOnHide':
+            case 'popupId':
+                // These are read directly from this.options at runtime, no reinit needed
+                break;
+        }
+
+        return this;
     };
 
     WowPopup.prototype.destroy = function () {
