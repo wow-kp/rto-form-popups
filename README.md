@@ -262,7 +262,9 @@ Reusable Blade partial for rendering lead capture forms. Include anywhere with `
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `source` | string | **Yes** | — | Source identifier for the lead (hidden field) |
+| `form_id` | string | **Yes** | — | Unique form identifier. Used for `WowForm` initialization when not inside a popup |
 | `smart_id` | string | No | `''` | Smart ID for tracking (hidden field) |
+| `in_popup` | bool | No | `false` | Set to `true` when the form is inside a `WowPopup` — skips standalone `WowForm` init |
 | `action` | string | No | `'/submitLead'` | Form action URL |
 | `hidden_fields` | array | No | `[]` | Additional hidden fields as `['name' => 'value', ...]` |
 | `rows` | array | No | Default fields | Override default field rows entirely |
@@ -320,6 +322,8 @@ When `rows` is not provided, the form renders these default rows:
 - The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
 - All other selects use the `options` array from the field definition
 - Every select starts with an empty disabled/hidden placeholder option
+- When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`
+- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally
 
 ### Usage examples
 
@@ -327,7 +331,8 @@ When `rows` is not provided, the form renders these default rows:
 
 ```blade
 @include('partials.template-form', [
-    'source' => 'contact-page',
+    'source'  => 'contact-page',
+    'form_id' => 'contact',
 ])
 ```
 
@@ -336,6 +341,7 @@ When `rows` is not provided, the form renders these default rows:
 ```blade
 @include('partials.template-form', [
     'source'   => 'contact-page',
+    'form_id'  => 'contact',
     'smart_id' => $smart_id,
 ])
 ```
@@ -345,6 +351,7 @@ When `rows` is not provided, the form renders these default rows:
 ```blade
 @include('partials.template-form', [
     'source'          => 'contact-page',
+    'form_id'         => 'contact',
     'excluded_fields' => ['phone', 'store'],
 ])
 ```
@@ -354,6 +361,7 @@ When `rows` is not provided, the form renders these default rows:
 ```blade
 @include('partials.template-form', [
     'source'       => 'request-page',
+    'form_id'      => 'request',
     'submit_text'  => 'Send Request',
     'submit_class' => 'bg-red white',
 ])
@@ -364,6 +372,7 @@ When `rows` is not provided, the form renders these default rows:
 ```blade
 @include('partials.template-form', [
     'source'        => 'promo-page',
+    'form_id'       => 'promo',
     'hidden_fields' => ['campaign' => 'summer-sale', 'ref' => 'banner'],
 ])
 ```
@@ -372,8 +381,9 @@ When `rows` is not provided, the form renders these default rows:
 
 ```blade
 @include('partials.template-form', [
-    'source' => 'inquiry-page',
-    'action' => '/custom-endpoint',
+    'source'  => 'inquiry-page',
+    'form_id' => 'inquiry',
+    'action'  => '/custom-endpoint',
 ])
 ```
 
@@ -381,8 +391,9 @@ When `rows` is not provided, the form renders these default rows:
 
 ```blade
 @include('partials.template-form', [
-    'source' => 'quote-page',
-    'rows'   => [
+    'source'  => 'quote-page',
+    'form_id' => 'quote',
+    'rows'    => [
         [
             ['name' => 'company', 'label' => 'Company Name', 'required' => true],
             ['name' => 'website', 'label' => 'Website'],
@@ -398,8 +409,9 @@ When `rows` is not provided, the form renders these default rows:
 
 ```blade
 @include('partials.template-form', [
-    'source' => 'feedback-page',
-    'rows'   => [
+    'source'  => 'feedback-page',
+    'form_id' => 'feedback',
+    'rows'    => [
         [
             ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
             ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
@@ -417,8 +429,19 @@ When `rows` is not provided, the form renders these default rows:
 ```blade
 @include('partials.template-form', [
     'source'          => 'sidebar',
+    'form_id'         => 'sidebar',
     'tabindex_start'  => 80,
     'excluded_fields' => ['message', 'store'],
+])
+```
+
+#### Inside a popup (skip WowForm init)
+
+```blade
+@include('partials.template-form', [
+    'source'   => 'promo-page',
+    'form_id'  => 'promo',
+    'in_popup' => true,
 ])
 ```
 
@@ -436,7 +459,7 @@ Include with `@include` for simple usage or `@component` when you need to inject
 |---|---|---|---|---|
 | `name` | string | **Yes** | — | Unique popup identifier. Used for `#popup-{name}`, `WowPopup` instance name, and the JS variable `popup_{name}` |
 | `i` | string | No | `''` | Image root path, available as `data-imgroot` on the popup element |
-| `form` | bool / array | No | `false` | When `true`, renders `template-form` with `source` defaulting to `$name`. When an array, passes those values as `template-form` parameters (merged with `source` default) |
+| `form` | bool / array | No | `false` | When `true`, renders `template-form` with `source` and `form_id` defaulting to `$name`. When an array, passes those values as `template-form` parameters (merged with defaults). `in_popup` is always set to `true` |
 
 ### Slots
 
@@ -486,6 +509,8 @@ Pass an array to `form` to override `template-form` parameters.
         'source'          => 'quote-page',
         'excluded_fields' => ['store', 'message'],
         'submit_text'     => 'Get My Quote',
+        'submit_class'    => 'bg-red white',
+        'hidden_fields'   => ['campaign' => 'summer-sale'],
     ],
 ])
 
@@ -495,6 +520,7 @@ Pass an array to `form` to override `template-form` parameters.
 
     @slot('popup_thanks')
         <h3>Quote Requested!</h3>
+        <p>Check your email for details.</p>
     @endslot
 
 @endcomponent
@@ -563,7 +589,7 @@ When using `@include`, the popup renders with empty default/thanks content. Use 
 
 #### Customizing with `set()` via the scripts slot
 
-The `scripts` slot renders after the popup initialization script.
+The `scripts` slot renders after the popup initialization script. Use `set()` to override form callbacks, toggle triggers, auto-show behaviour, and popup lifecycle hooks.
 
 ```blade
 @component(theme('components.template-popup'), [
@@ -600,6 +626,86 @@ The `scripts` slot renders after the popup initialization script.
 @endcomponent
 ```
 
+#### Chaining multiple `set()` calls
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        popup_march
+            .set('form', {
+                beforePost: function(form, data) {
+                    return data + '&campaign=march';
+                },
+                onSuccess: function(form, resp) {
+                    $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
+                },
+                onError: function(form, resp) {
+                    alert('Something went wrong.');
+                }
+            })
+            .set('toggleClasses', '.hero-cta, .sidebar-cta')
+            .set('resetOnHide', false)
+            .set('onShow', function(popup) {
+                console.log('Popup opened');
+            })
+            .set('onHide', function(popup) {
+                console.log('Popup closed');
+            });
+    });
+    </script>
+@endslot
+```
+
+#### Adding auto-show via `set()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        popup_march.set('autoShow', {
+            delay: 20000,
+            showOnce: true
+        });
+    });
+    </script>
+@endslot
+```
+
+#### Updating form callbacks independently via `WowForm.get()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowForm.get('march')
+            .set('onSuccess', function(form, resp) {
+                alert('Custom success!');
+            })
+            .set('onError', function(form, resp) {
+                alert('Custom error!');
+            })
+            .set('beforePost', function(form, data) {
+                return data + '&ref=banner';
+            });
+    });
+    </script>
+@endslot
+```
+
+#### Removing the form via `set()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        // Remove form handling entirely
+        popup_march.set('form', null);
+    });
+    </script>
+@endslot
+```
+
 #### Scratch-card game popup
 
 Uses `popup_steps` for the game screen and `scripts` for the scratch logic.
@@ -610,12 +716,14 @@ Uses `popup_steps` for the game screen and `scripts` for the scratch logic.
     'i'    => $i . '/scratch',
     'form' => [
         'source'          => 'scratch-game',
-        'excluded_fields' => ['message'],
+        'excluded_fields' => ['message', 'store'],
+        'submit_text'     => 'Play Now',
     ],
 ])
 
     @slot('form_text')
         <h2>Scratch & Score!</h2>
+        <p>Enter your info for a chance to win.</p>
     @endslot
 
     @slot('popup_steps')
@@ -625,8 +733,8 @@ Uses `popup_steps` for the game screen and `scripts` for the scratch logic.
     @endslot
 
     @slot('popup_thanks')
-        <h3>You won!</h3>
-        <p>Show this screen in store to redeem.</p>
+        <h3>Congratulations!</h3>
+        <p>Show this screen in store to redeem your prize.</p>
     @endslot
 
     @slot('scripts')
@@ -657,6 +765,46 @@ Uses `popup_steps` for the game screen and `scripts` for the scratch logic.
             });
         });
         </script>
+    @endslot
+
+@endcomponent
+```
+
+#### Popup with fully custom form rows
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'feedback',
+    'form' => [
+        'source' => 'feedback-form',
+        'action' => '/submitFeedback',
+        'rows'   => [
+            [
+                ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
+                ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
+            ],
+            [
+                ['name' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true],
+            ],
+            [
+                ['name' => 'department', 'type' => 'select', 'label' => 'Department', 'required' => true,
+                 'options' => ['sales' => 'Sales', 'support' => 'Support', 'other' => 'Other']],
+            ],
+            [
+                ['name' => 'message', 'label' => 'Your Feedback', 'required' => true],
+            ],
+        ],
+        'submit_text' => 'Send Feedback',
+    ],
+])
+
+    @slot('form_text')
+        <h2>We'd love your feedback</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Feedback received!</h3>
+        <p>We appreciate you taking the time.</p>
     @endslot
 
 @endcomponent

@@ -44,7 +44,7 @@
                         {{ $form_text }}
                     @endisset
                     @isset($form)
-                        @include(theme('components.template-form'), array_merge( ['source' => $name], is_array($form) ? $form : [] ))
+                        @include(theme('components.template-form'), array_merge( ['source' => $name, 'in_popup' => true], is_array($form) ? $form : [] ))
                     @else
                         @isset($popup_default)
                             {{ $popup_default }}

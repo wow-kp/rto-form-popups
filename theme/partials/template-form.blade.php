@@ -1,4 +1,4 @@
-@if (!empty($source))
+@if (!empty($source) && !empty($form_id))
     @php
         $action          = $action ?? '/submitLead';
         $smart_id        = $smart_id ?? '';
@@ -127,4 +127,13 @@
         </div>
 
     </form>
+    @empty ($in_popup)
+        @push('scripts')
+            <script type="text/javascript">
+                jQuery(document).ready(function($){
+                    var form_{{$form_id}} = new WowForm('{{$form_id}}');
+                });
+            </script>
+        @endpush
+    @endempty
 @endif
