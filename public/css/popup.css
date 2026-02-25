@@ -1,0 +1,52 @@
+body.scrolllock-on {
+    position: fixed;
+    width: 100%;
+    overflow: hidden
+}
+.popup {
+    font-size: 16px;
+    z-index: 999999;
+}
+.popup .popup-overlay {
+    background-color: rgba(0, 0, 0, 0.85);
+}
+.popup .popup-content {
+    max-height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+.popup .popup-close {
+    background-color: transparent;
+    width: 15px;
+    height: 15px;
+}
+.popup .popup-close:before,
+.popup .popup-close:after {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 131.25%;
+    background-color: #a1a1a1;
+    transform: rotate(45deg)
+}
+.popup .popup-close:after {
+    transform: rotate(-45deg)
+}
+.popup .popup-content .popup-close.uses-image {
+    width: auto;
+    height: auto;
+}
+.popup .popup-content .popup-close.uses-image:before,
+.popup .popup-content .popup-close.uses-image:after {
+    display: none;
+}
+
+@media screen and (max-width: 567px) {
+    .popup .popup-content {
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+    }
+}
