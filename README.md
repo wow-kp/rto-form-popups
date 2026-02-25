@@ -1005,24 +1005,17 @@ WowForm.get('newsletter').destroy();
 
 ---
 
-## Expected HTML structure
+## Expected HTML Structure
+
+### Popup
 
 ```html
-<!-- Popup -->
 <div id="popup-{name}" class="popup" style="display: none;">
-    <button class="popup-close">×</button>
+    <div class="popup-overlay"></div>
     <div class="popup-content">
+        <button class="popup-close toggle-{name}-popup">Close popup</button>
         <div class="popup-default">
-            <form method="post" action="/endpoint">
-                <div class="field-wrapper">
-                    <input type="text" name="name" required>
-                </div>
-                <div class="field-wrapper">
-                    <input type="email" name="email" required>
-                </div>
-                <div class="captcha"></div>
-                <button type="submit">Submit</button>
-            </form>
+            <!-- Form or custom content here -->
         </div>
         <div class="popup-thanks" style="display: none;">
             <p>Thank you!</p>
@@ -1032,6 +1025,48 @@ WowForm.get('newsletter').destroy();
 
 <!-- Toggle trigger -->
 <button class="toggle-{name}-popup">Open</button>
+```
+
+### Form
+
+```html
+<form method="post" action="/submitLead" class="uni-style">
+
+    <input type="hidden" name="_token" value="...">
+    <input type="hidden" name="source" value="{source}">
+    <input type="hidden" name="smart_id" value="{smart_id}">
+
+    <div class="form-row flex">
+        <!-- Text input -->
+        <div class="form-field">
+            <div class="field-wrapper relative flex items-center">
+                <label for="first_name" class="absolute z1 events-none">First Name</label>
+                <input type="text" name="first_name" id="first_name"
+                       class="border border-gray avenir-medium mx-auto"
+                       tabindex="41" required>
+            </div>
+        </div>
+
+        <!-- Select input -->
+        <div class="form-field">
+            <div class="field-wrapper relative flex items-center select_box">
+                <label for="store" class="absolute z1 events-none">Select a Store</label>
+                <select name="store" id="store"
+                        class="border border-gray avenir-medium mx-auto no-app not-selectric not-select"
+                        tabindex="42" required>
+                    <option value="" disabled hidden selected></option>
+                    <option value="1">Store One</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-action">
+        <div class="captcha"></div>
+        <button type="submit" class="button" disabled>Submit</button>
+    </div>
+
+</form>
 ```
 
 ### CSS classes used

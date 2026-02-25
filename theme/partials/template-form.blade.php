@@ -77,7 +77,7 @@
                     @endphp
                     <div class="form-field">
                         <div class="field-wrapper relative flex items-center{{ $type === 'select' ? ' select_box' : '' }}">
-                            <label for="{{ $id }}" class="absolute z1 events-none">{{ $label }}</label>
+                            <label for="{{ $id }}" class="absolute z1 events-none">{{ $label }}@if($required)<span class="f-red">*</span>@endif</label>
 
                             @if ($type === 'select')
                                 <select
