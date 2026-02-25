@@ -1,14 +1,192 @@
 {{-- ================================================================
-     EXAMPLE: template-popup usage patterns
+     EXAMPLE: template-form standalone usage patterns
      ================================================================ --}}
 
 
 {{------------------------------------------------------------------
-     1. SIMPLE POPUP WITH FORM (all defaults)
+     F1. STANDALONE FORM WITH ALL DEFAULTS
      ----------------------------------------------------------------
-     - Passing form=true auto-renders template-form with source=$name
-     - Default success: toggles .popup-default / .popup-thanks
+     - Renders default rows: first_name, last_name, email, phone, store, message
+     - Automatically initializes WowForm via @push('scripts')
      ------------------------------------------------------------------}}
+
+ <div id="form-contact">
+	@include(theme('partials.template-form'), [
+		'source'  => 'contact-page',
+		'form_id' => 'contact',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F2. STANDALONE FORM WITH EXCLUDED FIELDS
+	 ----------------------------------------------------------------
+	 - Removes store and message from the default rows
+	 ------------------------------------------------------------------}}
+
+<div id="form-newsletter">
+	@include(theme('partials.template-form'), [
+		'source'          => 'newsletter-signup',
+		'form_id'         => 'newsletter',
+		'excluded_fields' => ['store', 'message'],
+		'submit_text'     => 'Subscribe',
+		'submit_class'    => 'bg-blue white',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F3. STANDALONE FORM WITH SMART ID AND HIDDEN FIELDS
+	 ------------------------------------------------------------------}}
+
+<div id="form-promo">
+	@include(theme('partials.template-form'), [
+		'source'        => 'promo-landing',
+		'form_id'       => 'promo',
+		'smart_id'      => $smart_id ?? '',
+		'hidden_fields' => ['campaign' => 'summer-sale', 'ref' => 'hero-banner'],
+		'submit_text'   => 'Claim Offer',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F4. STANDALONE FORM WITH CUSTOM ACTION URL
+	 ------------------------------------------------------------------}}
+
+<div id="form-inquiry">
+	@include(theme('partials.template-form'), [
+		'source'          => 'inquiry-page',
+		'form_id'         => 'inquiry',
+		'action'          => '/submitInquiry',
+		'excluded_fields' => ['store'],
+		'submit_text'     => 'Send Inquiry',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F5. STANDALONE FORM WITH FULLY CUSTOM ROWS
+	 ----------------------------------------------------------------
+	 - Overrides default rows entirely
+	 - Includes a custom select field
+	 ------------------------------------------------------------------}}
+
+<div id="form-quote">
+	@include(theme('partials.template-form'), [
+		'source'  => 'quote-page',
+		'form_id' => 'quote',
+		'rows'    => [
+			[
+				['name' => 'company',  'label' => 'Company Name', 'required' => true],
+				['name' => 'website',  'label' => 'Website'],
+			],
+			[
+				['name' => 'email', 'type' => 'email', 'label' => 'Work Email', 'required' => true],
+				['name' => 'phone', 'type' => 'tel',   'label' => 'Phone',      'required' => true],
+			],
+			[
+				['name' => 'budget', 'type' => 'select', 'label' => 'Budget Range', 'required' => true,
+				 'options' => ['small' => 'Under $5k', 'medium' => '$5k–$20k', 'large' => '$20k+']],
+			],
+			[
+				['name' => 'message', 'label' => 'Project Details'],
+			],
+		],
+		'submit_text'  => 'Request Quote',
+		'submit_class' => 'bg-red white',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F6. STANDALONE FORM WITH CUSTOM TABINDEX
+	 ----------------------------------------------------------------
+	 - Useful when multiple forms exist on the same page
+	 ------------------------------------------------------------------}}
+
+<div id="form-sidebar">
+	@include(theme('partials.template-form'), [
+		'source'          => 'sidebar',
+		'form_id'         => 'sidebar',
+		'tabindex_start'  => 80,
+		'excluded_fields' => ['store', 'message'],
+		'submit_text'     => 'Get Started',
+	])
+</div>
+
+
+{{------------------------------------------------------------------
+	 F7. STANDALONE FORM WITH CUSTOM JS CALLBACKS
+	 ----------------------------------------------------------------
+	 - Uses WowForm.get() to attach callbacks after initialization
+	 ------------------------------------------------------------------}}
+
+<div id="form-callback">
+	@include(theme('partials.template-form'), [
+		'source'          => 'callback-request',
+		'form_id'         => 'callback',
+		'excluded_fields' => ['store', 'message'],
+		'submit_text'     => 'Request Callback',
+	])
+</div>
+
+<script>
+	jQuery(document).ready(function($){
+		WowForm.get('callback')
+			.set('beforePost', function(form, data) {
+				return data + '&timezone=' + Intl.DateTimeFormat().resolvedOptions().timeZone;
+			})
+			.set('onSuccess', function(form, resp) {
+				$('#form-callback').html('<p>We\'ll call you shortly!</p>');
+			})
+			.set('onError', function(form, resp) {
+				alert('Something went wrong. Please try again.');
+			});
+	});
+</script>
+
+
+{{------------------------------------------------------------------
+	 F8. STANDALONE FORM TRIGGERING A POPUP ON SUCCESS
+	 ------------------------------------------------------------------}}
+
+<div id="form-inline-contact">
+	@include(theme('partials.template-form'), [
+		'source'  => 'inline-contact',
+		'form_id' => 'inline_contact',
+	])
+</div>
+
+@component(theme('components.template-popup'), ['name' => 'thankyou'])
+	@slot('popup_default')
+		<h3>Thank you!</h3>
+		<p>We've received your message and will be in touch soon.</p>
+		<button class="button toggle-thankyou-popup">Close</button>
+	@endslot
+@endcomponent
+
+<script>
+	jQuery(document).ready(function($){
+		WowForm.get('inline_contact').set('onSuccess', function(form, resp) {
+			WowPopup.get('thankyou').show();
+			form.reset();
+		});
+	});
+</script>
+
+
+{{-- ================================================================
+	 EXAMPLE: template-popup usage patterns
+	 ================================================================ --}}
+
+
+{{------------------------------------------------------------------
+	 1. SIMPLE POPUP WITH FORM (all defaults)
+	 ----------------------------------------------------------------
+	 - Passing form=true auto-renders template-form with source=$name
+	 - Default success: toggles .popup-default / .popup-thanks
+	 ------------------------------------------------------------------}}
 
 <button class="toggle-simple-popup">Open Simple Popup</button>
 
@@ -89,19 +267,19 @@
 
 	@slot('scripts')
 		<script>
-		jQuery(document).ready(function($){
-			popup_march.set('form', {
-				beforePost: function(form, data) {
-					return data + '&campaign=march-madness';
-				},
-				onSuccess: function(form, resp) {
-					$('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
-				},
-				onError: function(form, resp) {
-					alert('Something went wrong. Please try again.');
-				}
+			jQuery(document).ready(function($){
+				popup_march.set('form', {
+					beforePost: function(form, data) {
+						return data + '&campaign=march-madness';
+					},
+					onSuccess: function(form, resp) {
+						$('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
+					},
+					onError: function(form, resp) {
+						alert('Something went wrong. Please try again.');
+					}
+				});
 			});
-		});
 		</script>
 	@endslot
 
@@ -170,31 +348,31 @@
 
 	@slot('scripts')
 		<script>
-		jQuery(document).ready(function($){
-			popup_scratch.set('form', {
-				onSuccess: function(wp, resp) {
-					var imgroot = $('#popup-scratch').data('imgroot');
-					$('#popup-scratch .popup-default, #popup-scratch .popup-game').toggle();
-					$('#popup-scratch .scratchpad').wScratchPad({
-						size: 20,
-						bg: imgroot + '/bg.png',
-						fg: imgroot + '/fg.png',
-						realtime: true,
-						scratchMove: function(e, percent) {
-							if (percent >= 75) {
-								$('#popup-scratch .popup-game').addClass('events-none').hide();
-								$('#popup-scratch .popup-thanks').show();
-								this.clear();
-								this.reset();
-								this.enabled = false;
-								this.scratch = false;
-							}
-						},
-						cursor: 'url("' + imgroot + '/coin.png") 70 68, default'
-					});
-				}
+			jQuery(document).ready(function($){
+				popup_scratch.set('form', {
+					onSuccess: function(wp, resp) {
+						var imgroot = $('#popup-scratch').data('imgroot');
+						$('#popup-scratch .popup-default, #popup-scratch .popup-game').toggle();
+						$('#popup-scratch .scratchpad').wScratchPad({
+							size: 20,
+							bg: imgroot + '/bg.png',
+							fg: imgroot + '/fg.png',
+							realtime: true,
+							scratchMove: function(e, percent) {
+								if (percent >= 75) {
+									$('#popup-scratch .popup-game').addClass('events-none').hide();
+									$('#popup-scratch .popup-thanks').show();
+									this.clear();
+									this.reset();
+									this.enabled = false;
+									this.scratch = false;
+								}
+							},
+							cursor: 'url("' + imgroot + '/coin.png") 70 68, default'
+						});
+					}
+				});
 			});
-		});
 		</script>
 	@endslot
 
