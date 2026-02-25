@@ -55,15 +55,17 @@
             @isset($popup_steps)
                 {{ $popup_steps }}
             @endisset
-            <div class="popup-thanks popup-inner mx-auto fit relative flex flex-column items-center justify-center full-width full-height" style="display: none;">
-                <!-- Do not Remove! For tracking Purposes -->
-                <div class="tracking_promo_success">
-                    <img src="{{$i}}/promo_success.png" class="promo_image" alt=""/>
+            @isset($form)
+                <div class="popup-thanks popup-inner mx-auto fit relative flex flex-column items-center justify-center full-width full-height" style="display: none;">
+                    <!-- Do not Remove! For tracking Purposes -->
+                    <div class="tracking_promo_success">
+                        <img src="{{$i}}/promo_success.png" class="promo_image" alt=""/>
+                    </div>
+                    @isset($popup_thanks)
+                        {{ $popup_thanks }}
+                    @endisset
                 </div>
-                @isset($popup_thanks)
-                    {{ $popup_thanks }}
-                @endisset
-            </div>
+            @endisset
         </div>
     </section>
     @push('scripts')
