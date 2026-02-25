@@ -1,6 +1,6 @@
 # rto-form-popups
 
-Lightweight jQuery-based system for managing popups, forms, scroll-locking and reCAPTCHA.
+Lightweight system for managing popups and forms — includes jQuery modules for scroll-locking, reCAPTCHA and AJAX submission, plus reusable Laravel Blade templates for rapid page builds.
 
 ## Table of Contents
 
@@ -10,6 +10,7 @@ Lightweight jQuery-based system for managing popups, forms, scroll-locking and r
 - [WowForm](#wowform)
 - [WowPopup](#wowpopup)
 - [template-form.blade.php](#template-formbladephp)
+- [template-popup.blade.php](#template-popupbladephp)
 - [JS Usage Examples](#js-usage-examples)
 - [Expected HTML Structure](#expected-html-structure)
 
@@ -419,6 +420,246 @@ When `rows` is not provided, the form renders these default rows:
     'tabindex_start'  => 80,
     'excluded_fields' => ['message', 'store'],
 ])
+```
+
+---
+
+## template-popup.blade.php
+
+Reusable Blade component for rendering popups with optional forms. Generates the popup HTML structure and initializes `WowPopup` via JS. Supports per-page customisation using `set()` in a separate script block.
+
+Include with `@include` for simple usage or `@component` when you need to inject HTML via slots.
+
+### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `name` | string | **Yes** | — | Unique popup identifier. Used for `#popup-{name}`, `WowPopup` instance name, and the JS variable `popup_{name}` |
+| `i` | string | No | `''` | Image root path, available as `data-imgroot` on the popup element |
+| `form` | bool / array | No | `false` | When `true`, renders `template-form` with `source` defaulting to `$name`. When an array, passes those values as `template-form` parameters (merged with `source` default) |
+
+### Slots
+
+| Slot | Description |
+|---|---|
+| `$styles` | Custom styles. Rendered before the popup HTML |
+| `$close_img` | Custom close button image/content. Defaults to `×` |
+| `$form_text` | Content above the form (only when `$form` is set) |
+| `$popup_default` | Main popup content inside `.popup-default` (only when `$form` is **not** set) |
+| `$popup_steps` | Additional popup steps/screens (e.g. scratch game, multi-step flow) |
+| `$popup_thanks` | Thank-you content inside `.popup-thanks`. Defaults to "Thank you!" |
+| `$scripts` | Custom scripts. Rendered after the popup initialization script |
+
+### File location
+
+```
+resources/views/frontend/{theme_name}/components/template-popup.blade.php
+```
+
+### Usage examples
+
+#### Minimal popup with form (all defaults)
+
+```blade
+@component(theme('components.template-popup'), ['name' => 'march', 'form' => true])
+
+    @slot('form_text')
+        <h2>Contact Us</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Thank you!</h3>
+        <p>We'll be in touch soon.</p>
+    @endslot
+
+@endcomponent
+```
+
+#### Popup with custom form options
+
+Pass an array to `form` to override `template-form` parameters.
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'quote',
+    'form' => [
+        'source'          => 'quote-page',
+        'excluded_fields' => ['store', 'message'],
+        'submit_text'     => 'Get My Quote',
+    ],
+])
+
+    @slot('form_text')
+        <h2>Request a Quote</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Quote Requested!</h3>
+    @endslot
+
+@endcomponent
+```
+
+#### Popup without a form
+
+When `form` is not set, use `popup_default` for content.
+
+```blade
+@component(theme('components.template-popup'), ['name' => 'gallery'])
+
+    @slot('popup_default')
+        <div class="gallery-grid">
+            <img src="/images/photo1.jpg" alt="Photo 1">
+            <img src="/images/photo2.jpg" alt="Photo 2">
+        </div>
+    @endslot
+
+@endcomponent
+```
+
+#### With image root and custom styles
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'august',
+    'i'    => '/themes/rent2own/promos/25/aug/images',
+    'form' => [
+        'source'          => 'august-promo',
+        'excluded_fields' => ['store', 'message'],
+        'submit_text'     => 'Get Coupon',
+    ],
+])
+
+    @slot('styles')
+        <link rel="stylesheet" href="/themes/{{ $account->theme }}/promos/25/aug/css/popup.css">
+    @endslot
+
+    @slot('close_img')
+        <img src="/themes/rent2own/images/close-white.svg" alt="Close">
+    @endslot
+
+    @slot('form_text')
+        <h2>August Sale!</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Check your email!</h3>
+        <p>Your coupon is on the way.</p>
+    @endslot
+
+@endcomponent
+```
+
+#### Using `@include` (no slots needed)
+
+```blade
+@include(theme('components.template-popup'), [
+    'name' => 'simple',
+    'form' => true,
+])
+```
+
+When using `@include`, the popup renders with empty default/thanks content. Use `set()` to customize the form behaviour.
+
+#### Customizing with `set()` via the scripts slot
+
+The `scripts` slot renders after the popup initialization script.
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'march',
+    'form' => ['source' => 'march-promo'],
+])
+
+    @slot('form_text')
+        <h2>March Promo</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Thanks!</h3>
+    @endslot
+
+    @slot('scripts')
+        <script>
+        jQuery(document).ready(function($){
+            popup_march.set('form', {
+                beforePost: function(form, data) {
+                    return data + '&campaign=march';
+                },
+                onSuccess: function(form, resp) {
+                    $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
+                },
+                onError: function(form, resp) {
+                    alert('Something went wrong.');
+                }
+            });
+        });
+        </script>
+    @endslot
+
+@endcomponent
+```
+
+#### Scratch-card game popup
+
+Uses `popup_steps` for the game screen and `scripts` for the scratch logic.
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'scratch',
+    'i'    => $i . '/scratch',
+    'form' => [
+        'source'          => 'scratch-game',
+        'excluded_fields' => ['message'],
+    ],
+])
+
+    @slot('form_text')
+        <h2>Scratch & Score!</h2>
+    @endslot
+
+    @slot('popup_steps')
+        <div class="popup-game" style="display: none;">
+            <div class="scratchpad"></div>
+        </div>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>You won!</h3>
+        <p>Show this screen in store to redeem.</p>
+    @endslot
+
+    @slot('scripts')
+        <script>
+        jQuery(document).ready(function($){
+            popup_scratch.set('form', {
+                onSuccess: function(wp, resp) {
+                    var imgroot = $('#popup-scratch').data('imgroot');
+                    $('#popup-scratch .popup-default, #popup-scratch .popup-game').toggle();
+                    $('#popup-scratch .scratchpad').wScratchPad({
+                        size: 20,
+                        bg: imgroot + '/bg.png',
+                        fg: imgroot + '/fg.png',
+                        realtime: true,
+                        scratchMove: function(e, percent) {
+                            if (percent >= 75) {
+                                $('#popup-scratch .popup-game').addClass('events-none').hide();
+                                $('#popup-scratch .popup-thanks').show();
+                                this.clear();
+                                this.reset();
+                                this.enabled = false;
+                                this.scratch = false;
+                            }
+                        },
+                        cursor: 'url("' + imgroot + '/coin.png") 70 68, default'
+                    });
+                }
+            });
+        });
+        </script>
+    @endslot
+
+@endcomponent
 ```
 
 ---

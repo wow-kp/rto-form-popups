@@ -1,3 +1,25 @@
+{{--
+    Reusable popup component.
+
+    Parameters:
+        $name — Required. Unique popup identifier
+        $i    — Optional. Image root path (data-imgroot)
+        $form — Optional. When truthy, renders template-form inside .popup-default
+
+    Slots:
+        $styles        — Custom CSS styles 
+        $close_img     — Custom close button image/content
+        $form_text     — Content above the form (only when $form is set)
+        $popup_default — Main popup content (only when $form is NOT set)
+        $popup_steps   — Additional popup steps/screens
+        $popup_thanks  — Thank-you content
+        $scripts       — Custom JS (runs after WowPopup initialization)
+--}}
+@php
+    $name = $name ?? '';
+    $i    = $i ?? '';
+    $form = $form ?? false;
+@endphp
 @if(!empty($name))
     @push('styles')
         @isset($styles)
@@ -22,7 +44,7 @@
                         {{ $form_text }}
                     @endisset
                     @isset($form)
-                        @include(theme('partials.template-form'), $form)
+                        @include(theme('components.template-form'), array_merge( ['source' => $name], is_array($form) ? $form : [] ))
                     @else
                         @isset($popup_default)
                             {{ $popup_default }}
@@ -45,9 +67,6 @@
         </div>
     </section>
     @push('scripts')
-        @isset($scripts)
-            {{ $scripts }}
-        @endisset
         <script type="text/javascript">
             jQuery(document).ready(function($){
                 var popup_{{$name}} = new WowPopup('{{$name}}', {
@@ -55,5 +74,8 @@
                 });
             });
         </script>
+        @isset($scripts)
+            {{ $scripts }}
+        @endisset
     @endpush
 @endif
