@@ -95,8 +95,34 @@ new WowForm(name, options);
 | Method | Description |
 |---|---|
 | `WowForm.get(name)` | Static. Returns the WowForm instance by name, or `null` |
+| `set(key, value)` | Update a single option at runtime. Returns `this` for chaining. See Set behaviour below |
 | `reset()` | Reset the form, field states and captcha |
 | `destroy()` | Unbind all events and remove from registry |
+
+#### `set()` behaviour
+
+| Key | What happens |
+|---|---|
+| `containerId` | Destroys old event bindings, updates container, reinitializes on new container |
+| `beforePost` | Stores the value — read at runtime in `_post()`, no reinit needed |
+| `onSuccess` | Stores the value — read at runtime in `_post()`, no reinit needed |
+| `onError` | Stores the value — read at runtime in `_post()`, no reinit needed |
+
+```js
+// Update callbacks
+WowForm.get('newsletter').set('onSuccess', function (form, resp) {
+    alert('Thanks for subscribing!');
+});
+
+// Chain multiple updates
+WowForm.get('newsletter')
+    .set('onSuccess', function (form, resp) { alert('Done!'); })
+    .set('onError', function (form, resp) { alert('Failed'); })
+    .set('beforePost', function (form, data) { return data + '&source=footer'; });
+
+// Move form to a different container
+WowForm.get('newsletter').set('containerId', '#new-container');
+```
 
 #### Server response
 
@@ -177,8 +203,45 @@ Automatically shows the popup after a delay. Skipped if another popup is already
 | `WowPopup.get(name)` | Static. Returns the WowPopup instance by name, or `null` |
 | `show()` | Show the popup. Hides any other active popup first |
 | `hide()` | Hide the popup |
+| `set(key, value)` | Update a single option at runtime. Returns `this` for chaining. See Set behaviour below |
 | `resetPopup()` | Reset popup view state and associated form |
 | `destroy()` | Hide, unbind all events and remove from registry |
+
+#### `set()` behaviour
+
+| Key | What happens |
+|---|---|
+| `form` | Destroys old WowForm instance, creates new one with updated options. Pass `null` to remove the form |
+| `toggleClasses` | Unbinds old click handlers, rebinds with new selectors. `.toggle-{name}-popup` is always preserved |
+| `autoShow` | Triggers the auto-show timer with the new configuration |
+| `onShow` | Stores the value — read at runtime on show, no reinit needed |
+| `onHide` | Stores the value — read at runtime on hide, no reinit needed |
+| `resetOnHide` | Stores the value — read at runtime on hide, no reinit needed |
+| `popupId` | Stores the value — no reinit needed |
+
+```js
+// Update form config (destroys old WowForm, creates new one)
+WowPopup.get('march').set('form', {
+    onSuccess: function (form, resp) { alert('Sent!'); },
+    onError: function (form, resp) { alert('Failed'); },
+});
+
+// Remove form
+WowPopup.get('march').set('form', null);
+
+// Change toggle triggers
+WowPopup.get('march').set('toggleClasses', '.new-trigger, .another-trigger');
+
+// Update callbacks
+WowPopup.get('march').set('onShow', function (popup) { console.log('opened'); });
+
+// Chain multiple updates
+WowPopup.get('march')
+    .set('form', { onSuccess: fn })
+    .set('toggleClasses', '.cta-btn')
+    .set('resetOnHide', false)
+    .set('onShow', function () { console.log('hi'); });
+```
 
 #### Built-in behaviour
 
@@ -409,6 +472,40 @@ new WowPopup('contact', {
 });
 ```
 
+### Initialize then customize with `set()`
+
+Create a popup with default form handling, then override specific options later.
+
+```js
+// Initialize with defaults
+var popup_march = new WowPopup('march', { form: true });
+
+// Override form callbacks later
+popup_march.set('form', {
+    beforePost: function (form, data) {
+        return data + '&source=website';
+    },
+    onSuccess: function (form, resp) {
+        alert('Message sent!');
+    },
+    onError: function (form, resp) {
+        alert('Failed to send, please try again.');
+    },
+});
+```
+
+### Update form callbacks on the fly
+
+```js
+WowForm.get('contact')
+    .set('onSuccess', function (form, resp) {
+        alert('New success handler!');
+    })
+    .set('onError', function (form, resp) {
+        alert('New error handler!');
+    });
+```
+
 ### Multiple toggle triggers
 
 The default toggle class `.toggle-{name}-popup` is always registered. Use `toggleClasses` for additional triggers.
@@ -418,6 +515,9 @@ new WowPopup('signup', {
     toggleClasses: '.hero-cta, .sidebar-cta, #exit-intent-trigger',
     form: true,
 });
+
+// Change triggers later
+WowPopup.get('signup').set('toggleClasses', '.new-cta, .promo-banner');
 ```
 
 ### Form triggers a separate popup on success
@@ -504,6 +604,10 @@ WowForm.get('newsletter').reset();
 if (WowScrollLock.isLocked()) {
     console.log('A popup is open');
 }
+
+// Update options at runtime
+WowPopup.get('contact').set('onShow', function () { console.log('opened'); });
+WowForm.get('newsletter').set('onSuccess', function () { alert('done'); });
 
 // Destroy instances
 WowPopup.get('contact').destroy();
