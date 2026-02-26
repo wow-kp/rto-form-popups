@@ -1,6 +1,7 @@
 @if (!empty($source) && !empty($form_id))
     @php
         $action          = $action ?? '/submitLead';
+        $ajax            = $ajax ?? true;
         $smart_id        = $smart_id ?? '';
         $hidden_fields   = $hidden_fields ?? [];
         $rows            = $rows ?? null;
@@ -131,7 +132,7 @@
         @push('scripts')
             <script type="text/javascript">
                 jQuery(document).ready(function($){
-                    var form_{{$form_id}} = new WowForm('{{$form_id}}');
+                    var form_{{$form_id}} = new WowForm('{{$form_id}}'{{ $ajax ? '' : ', { ajax: false }' }});
                 });
             </script>
         @endpush

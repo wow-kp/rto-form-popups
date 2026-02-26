@@ -67,7 +67,7 @@ Adds/removes the `scrolllock-on` class on `<body>` and preserves `window.scrollY
 
 ### WowForm
 
-Standalone form handler. Manages input masks, field states (focused/has-value), email validation, native validation error marking, reCAPTCHA execution and AJAX submission.
+Standalone form handler. Manages input masks, field states (focused/has-value), email validation, native validation error marking, reCAPTCHA execution and form submission (AJAX or native).
 
 Can be used independently or created automatically via `WowPopup`.
 
@@ -87,9 +87,10 @@ new WowForm(name, options);
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `containerId` | string | `'#form-{name}'` | Selector for the element wrapping the `<form>` |
-| `beforePost` | function(form, data) | `null` | Modify serialized form data before POST. Return the modified string |
-| `onSuccess` | function(form, resp) | `null` | Called when the server returns `resp.success === true` |
-| `onError` | function(form, resp) | `null` | Called on `resp.success === false` or request failure. `resp` is `null` on network failure |
+| `ajax` | boolean | `true` | When `true`, submits via `$.post` and expects a JSON response. When `false`, performs a traditional full-page form submission |
+| `beforePost` | function | `null` | **AJAX mode** — `function(form, data)`: receives serialized form data, return modified string. **Native mode** — `function(form, $form)`: receives the jQuery form element for DOM manipulation (e.g. appending hidden fields) before submit |
+| `onSuccess` | function(form, resp) | `null` | Called when the server returns `resp.success === true`. AJAX mode only |
+| `onError` | function(form, resp) | `null` | Called on `resp.success === false` or request failure. `resp` is `null` on network failure. AJAX mode only |
 
 #### Methods
 
@@ -105,7 +106,8 @@ new WowForm(name, options);
 | Key | What happens |
 |---|---|
 | `containerId` | Destroys old event bindings, updates container, reinitializes on new container |
-| `beforePost` | Stores the value — read at runtime in `_post()`, no reinit needed |
+| `ajax` | Stores the value — read at runtime in `_submit()`, no reinit needed |
+| `beforePost` | Stores the value — read at runtime, no reinit needed |
 | `onSuccess` | Stores the value — read at runtime in `_post()`, no reinit needed |
 | `onError` | Stores the value — read at runtime in `_post()`, no reinit needed |
 
@@ -123,19 +125,51 @@ WowForm.get('newsletter')
 
 // Move form to a different container
 WowForm.get('newsletter').set('containerId', '#new-container');
+
+// Switch to native submission at runtime
+WowForm.get('newsletter').set('ajax', false);
 ```
 
-#### Server response
+#### Submission modes
 
-The form expects a JSON response from the server. A successful response must include `{ "success": true }`. Any other response triggers the error flow.
+**AJAX mode** (`ajax: true`, default)
+
+The form is submitted via `$.post`. The server must return JSON. A successful response must include `{ "success": true }`. Any other response triggers the error flow. `onSuccess` and `onError` callbacks are called accordingly.
+
+**Native mode** (`ajax: false`)
+
+The form performs a traditional full-page submission via `HTMLFormElement.submit()`. The browser navigates to the action URL and the server handles the response (redirect, rendered page, etc.). `onSuccess` and `onError` are not called since the page navigates away.
+
+The `beforePost` callback in native mode receives the jQuery `$form` object instead of serialized data. Use it to append hidden fields or modify the form DOM before submission:
+
+```js
+new WowForm('apply', {
+    ajax: false,
+    beforePost: function (form, $form) {
+        $form.append('<input type="hidden" name="ref" value="banner">');
+    },
+});
+```
+
+> **Note:** `HTMLFormElement.submit()` does not re-fire the `submit` event, so there is no risk of an infinite loop. It also skips HTML5 constraint validation, but this is safe because validation already ran when the original event fired.
 
 #### Example
 
 ```js
+// AJAX form (default)
 new WowForm('newsletter', {
     containerId: '#newsletter-signup',
     onSuccess: function (form, resp) {
         $('#newsletter-signup').html('<p>Thanks!</p>');
+    },
+});
+
+// Native form
+new WowForm('apply', {
+    containerId: '#apply-form',
+    ajax: false,
+    beforePost: function (form, $form) {
+        $form.append('<input type="hidden" name="timezone" value="' + Intl.DateTimeFormat().resolvedOptions().timeZone + '">');
     },
 });
 
@@ -184,9 +218,9 @@ When created via WowPopup, the default `onSuccess` toggles `.popup-default` / `.
 |---|---|---|---|
 | `name` | string | Same as popup name | WowForm instance name, used for registry and reset-on-hide lookup |
 | `containerId` | string | Same as `popupId` | Selector for the element wrapping the `<form>` |
-| `beforePost` | function(form, data) | `null` | Modify serialized form data before POST |
-| `onSuccess` | function(form, resp) | Toggles `.popup-default` / `.popup-thanks` | Called on `resp.success === true` |
-| `onError` | function(form, resp) | `null` | Called on failure |
+| `beforePost` | function | `null` | Modify data before submission. Signature depends on `ajax` mode (see WowForm) |
+| `onSuccess` | function(form, resp) | Toggles `.popup-default` / `.popup-thanks` | Called on `resp.success === true`. AJAX mode only |
+| `onError` | function(form, resp) | `null` | Called on failure. AJAX mode only |
 
 #### AutoShow sub-options (`autoShow: { ... }`)
 
@@ -265,6 +299,7 @@ Reusable Blade partial for rendering lead capture forms. Include anywhere with `
 | `form_id` | string | **Yes** | — | Unique form identifier. Used for `WowForm` initialization when not inside a popup |
 | `smart_id` | string | No | `''` | Smart ID for tracking (hidden field) |
 | `in_popup` | bool | No | `false` | Set to `true` when the form is inside a `WowPopup` — skips standalone `WowForm` init |
+| `ajax` | bool | No | `true` | When `false`, initializes `WowForm` with `ajax: false` for native full-page submission. Only applies when `in_popup` is falsy (popup forms are configured via `WowPopup`) |
 | `action` | string | No | `'/submitLead'` | Form action URL |
 | `hidden_fields` | array | No | `[]` | Additional hidden fields as `['name' => 'value', ...]` |
 | `rows` | array | No | Default fields | Override default field rows entirely |
@@ -322,8 +357,8 @@ When `rows` is not provided, the form renders these default rows:
 - The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
 - All other selects use the `options` array from the field definition
 - Every select starts with an empty disabled/hidden placeholder option
-- When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`
-- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally
+- When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`. If `ajax` is `false`, the instance is created with `{ ajax: false }`
+- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally. Use the `ajax` option in `WowPopup`'s `form` sub-options instead
 
 ### Usage examples
 
@@ -442,6 +477,16 @@ When `rows` is not provided, the form renders these default rows:
     'source'   => 'promo-page',
     'form_id'  => 'promo',
     'in_popup' => true,
+])
+```
+
+#### Native form submission (no AJAX)
+
+```blade
+@include('partials.template-form', [
+    'source'  => 'apply-page',
+    'form_id' => 'apply',
+    'ajax'    => false,
 ])
 ```
 
@@ -828,6 +873,25 @@ new WowForm('newsletter', {
 });
 ```
 
+### Standalone native form (no AJAX)
+
+```js
+new WowForm('apply', {
+    containerId: '#apply-form',
+    ajax: false,
+    beforePost: function (form, $form) {
+        // Append hidden fields before native submit
+        $form.append('<input type="hidden" name="ref" value="landing-page">');
+    },
+});
+```
+
+### Switch an existing form to native submission
+
+```js
+WowForm.get('contact').set('ajax', false);
+```
+
 ### Popup without a form
 
 ```js
@@ -856,6 +920,19 @@ new WowPopup('contact', {
         },
         onError: function (form, resp) {
             alert('Failed to send, please try again.');
+        },
+    },
+});
+```
+
+### Popup with native form submission
+
+```js
+new WowPopup('external', {
+    form: {
+        ajax: false,
+        beforePost: function (form, $form) {
+            $form.append('<input type="hidden" name="source" value="popup">');
         },
     },
 });
@@ -997,6 +1074,9 @@ if (WowScrollLock.isLocked()) {
 // Update options at runtime
 WowPopup.get('contact').set('onShow', function () { console.log('opened'); });
 WowForm.get('newsletter').set('onSuccess', function () { alert('done'); });
+
+// Switch submission mode at runtime
+WowForm.get('newsletter').set('ajax', false);
 
 // Destroy instances
 WowPopup.get('contact').destroy();

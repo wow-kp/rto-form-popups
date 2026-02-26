@@ -142,6 +142,7 @@ var WowForm = (function () {
         this.name = name;
         this.options = $.extend({
             containerId : '#form-' + name,
+            ajax        : true,
             beforePost  : null,
             onSuccess   : null,
             onError     : null,
@@ -199,16 +200,24 @@ var WowForm = (function () {
             var token     = typeof captchaId !== 'undefined' ? grecaptcha.getResponse(captchaId) : null;
 
             if (token) {
-                self._post($form, captchaId);
+                self._submit($form, captchaId);
             } else if (typeof captchaId !== 'undefined') {
                 grecaptcha.execute(captchaId);
                 $form.one('captcha:resolved', function () {
-                    self._post($form, captchaId);
+                    self._submit($form, captchaId);
                 });
             } else {
-                self._post($form, null);
+                self._submit($form, null);
             }
         });
+    };
+
+    WowForm.prototype._submit = function ($form, captchaId) {
+        if (this.options.ajax) {
+            this._post($form, captchaId);
+        } else {
+            this._nativeSubmit($form, captchaId);
+        }
     };
 
     WowForm.prototype._post = function ($form, captchaId) {
@@ -240,6 +249,13 @@ var WowForm = (function () {
                 self.options.onError(self, null);
             }
         });
+    };
+
+    WowForm.prototype._nativeSubmit = function ($form, captchaId) {
+        if (typeof this.options.beforePost === 'function') {
+            this.options.beforePost(this, $form);
+        }
+        $form[0].submit();
     };
 
     WowForm.prototype._resetCaptcha = function (captchaId) {
@@ -280,6 +296,7 @@ var WowForm = (function () {
                 _instances[oldName] = this;
                 break;
 
+            case 'ajax':
             case 'beforePost':
             case 'onSuccess':
             case 'onError':
