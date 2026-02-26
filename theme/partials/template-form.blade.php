@@ -2,6 +2,7 @@
     @php
         $action          = $action ?? '/submitLead';
         $ajax            = $ajax ?? true;
+        $captcha         = $captcha ?? 'invisible';
         $smart_id        = $smart_id ?? '';
         $hidden_fields   = $hidden_fields ?? [];
         $rows            = $rows ?? null;
@@ -9,6 +10,9 @@
         $submit_text     = $submit_text ?? 'Submit';
         $submit_class    = $submit_class ?? '';
         $tabindex_start  = $tabindex_start ?? 40;
+
+        // Map captcha option to component type
+        $captcha_type = $captcha === 'checkbox' ? 'v2_checkbox' : 'v2_invisible';
 
         // Default rows
         $default_rows = [
@@ -54,6 +58,7 @@
         {{-- Required hidden fields --}}
         <input type="hidden" name="source" value="{{ $source }}">
         <input type="hidden" name="smart_id" value="{{ $smart_id }}">
+        <x-inputs.captcha-type type="{{ $captcha_type }}" />
 
         {{-- Additional hidden fields --}}
         @foreach ($hidden_fields as $h_name => $h_value)
@@ -132,7 +137,12 @@
         @push('scripts')
             <script type="text/javascript">
                 jQuery(document).ready(function($){
-                    var form_{{$form_id}} = new WowForm('{{$form_id}}'{{ $ajax ? '' : ', { ajax: false }' }});
+                    @php
+                        $form_options = [];
+                        if (!$ajax) $form_options['ajax'] = false;
+                        if ($captcha === 'checkbox') $form_options['captcha'] = 'checkbox';
+                    @endphp
+                    var form_{{$form_id}} = new WowForm('{{$form_id}}'@if(!empty($form_options)), {!! json_encode($form_options, JSON_UNESCAPED_SLASHES) !!}@endif);
                 });
             </script>
         @endpush

@@ -19,6 +19,12 @@
     $name = $name ?? '';
     $i    = $i ?? '';
     $form = $form ?? false;
+
+    // Extract captcha type from form options for JS initialization
+    $form_captcha = null;
+    if (is_array($form) && !empty($form['captcha'])) {
+        $form_captcha = $form['captcha'];
+    }
 @endphp
 @if(!empty($name))
     @push('styles')
@@ -72,7 +78,7 @@
         <script type="text/javascript">
             jQuery(document).ready(function($){
                 var popup_{{$name}} = new WowPopup('{{$name}}', {
-                    form: {{ isset($form) ? 'true' : 'null' }}
+                    form: {{ isset($form) ? ($form_captcha ? '{ captcha: "' . $form_captcha . '" }' : 'true') : 'null' }}
                 });
             });
         </script>

@@ -20,7 +20,7 @@ Lightweight system for managing popups and forms — includes jQuery modules for
 
 - jQuery
 - [Inputmask](https://github.com/RobinHerbots/Inputmask)
-- Google reCAPTCHA v2 (invisible) — loaded automatically
+- Google reCAPTCHA v2 (invisible and/or checkbox) — loaded automatically
 
 ---
 
@@ -28,24 +28,47 @@ Lightweight system for managing popups and forms — includes jQuery modules for
 
 ### WowRecaptcha
 
-Global reCAPTCHA loader and renderer. Lazily loads the reCAPTCHA script when a `form[method="post"]` enters the viewport using `IntersectionObserver`. Renders captcha on any such form that contains a `.captcha` element.
+Global reCAPTCHA loader and renderer. Supports both **invisible** and **checkbox** ("I'm not a robot") captcha types. Lazily loads the reCAPTCHA script when a `form[method="post"]` enters the viewport using `IntersectionObserver`. Renders captcha on any such form that contains a `.captcha` element.
 
-**Auto-initializes** from `<html data-sitekey="...">`. Manual init is also available.
+**Auto-initializes** from `<html data-sitekey="..." data-sitekey_cb="...">`. Manual init is also available.
+
+#### HTML setup
+
+Add both sitekeys to the `<html>` tag. Values are pulled from `config/captcha.php`:
+
+```blade
+<html data-sitekey="{{config('captcha.v2_invisible.sitekey')}}" data-sitekey_cb="{{config('captcha.v2_checkbox.sitekey')}}">
+```
+
+| Attribute | Config key | Description |
+|---|---|---|
+| `data-sitekey` | `captcha.v2_invisible.sitekey` | Sitekey for invisible reCAPTCHA v2 |
+| `data-sitekey_cb` | `captcha.v2_checkbox.sitekey` | Sitekey for checkbox reCAPTCHA v2 |
+
+> **Note:** Invisible and checkbox reCAPTCHA require separate sitekeys registered in the [Google reCAPTCHA admin console](https://www.google.com/recaptcha/admin). Each sitekey is tied to a specific type.
 
 ```js
-// Manual init (optional if data-sitekey is set)
-WowRecaptcha.init('your-sitekey-here');
+// Manual init (optional if data attributes are set)
+WowRecaptcha.init({ invisible: 'KEY_A', checkbox: 'KEY_B' });
+
+// Legacy single-key init (treated as invisible)
+WowRecaptcha.init('KEY_A');
 ```
 
 #### Methods
 
 | Method | Description |
 |---|---|
-| `init(sitekey)` | Set the sitekey and start observing forms |
+| `init(keys)` | Set sitekeys and start observing forms. Accepts a string (invisible only) or object `{ invisible, checkbox }` |
+| `getSitekey(type)` | Returns the sitekey for the given type (`'invisible'` or `'checkbox'`). Falls back to whichever key is available |
 | `isLoaded()` | Returns `true` if the reCAPTCHA script has loaded |
 | `load()` | Manually trigger script loading (called automatically by WowPopup on show) |
-| `renderForms()` | Render captcha on all unrendered `form[method="post"]` with `.captcha` |
+| `renderForms()` | Render captcha on all unrendered `form[method="post"]` with `.captcha`. Reads `data-captcha-type` from each form to determine which type to render |
 | `onLoad()` | Internal callback for the reCAPTCHA script — not called manually |
+
+#### How forms are matched to captcha type
+
+`renderForms()` reads the `data-captcha-type` attribute on each `<form>` to decide which sitekey and mode to use. This attribute is set automatically by `WowForm` based on its `captcha` option — you don't need to add it manually.
 
 ---
 
@@ -69,6 +92,8 @@ Adds/removes the `scrolllock-on` class on `<body>` and preserves `window.scrollY
 
 Standalone form handler. Manages input masks, field states (focused/has-value), email validation, native validation error marking, reCAPTCHA execution and form submission (AJAX or native).
 
+Supports both **invisible** and **checkbox** reCAPTCHA via the `captcha` option.
+
 Can be used independently or created automatically via `WowPopup`.
 
 ```js
@@ -88,9 +113,17 @@ new WowForm(name, options);
 |---|---|---|---|
 | `containerId` | string | `'#form-{name}'` | Selector for the element wrapping the `<form>` |
 | `ajax` | boolean | `true` | When `true`, submits via `$.post` and expects a JSON response. When `false`, performs a traditional full-page form submission |
+| `captcha` | string | `'invisible'` | reCAPTCHA type: `'invisible'` or `'checkbox'`. Determines which sitekey is used and how captcha validation is handled on submit |
 | `beforePost` | function | `null` | **AJAX mode** — `function(form, data)`: receives serialized form data, return modified string. **Native mode** — `function(form, $form)`: receives the jQuery form element for DOM manipulation (e.g. appending hidden fields) before submit |
 | `onSuccess` | function(form, resp) | `null` | Called when the server returns `resp.success === true`. AJAX mode only |
 | `onError` | function(form, resp) | `null` | Called on `resp.success === false` or request failure. `resp` is `null` on network failure. AJAX mode only |
+
+#### Captcha behaviour by type
+
+| Type | Submit without token | Submit with token |
+|---|---|---|
+| `'invisible'` | `grecaptcha.execute()` is called automatically, form submits after resolution | Submits immediately |
+| `'checkbox'` | Submission is blocked, `.captcha-error` class is added to the `.captcha` element to highlight the checkbox | Submits immediately |
 
 #### Methods
 
@@ -98,7 +131,7 @@ new WowForm(name, options);
 |---|---|
 | `WowForm.get(name)` | Static. Returns the WowForm instance by name, or `null` |
 | `set(key, value)` | Update a single option at runtime. Returns `this` for chaining. See Set behaviour below |
-| `reset()` | Reset the form, field states and captcha |
+| `reset()` | Reset the form, field states, captcha error highlight and captcha widget |
 | `destroy()` | Unbind all events and remove from registry |
 
 #### `set()` behaviour
@@ -106,19 +139,36 @@ new WowForm(name, options);
 | Key | What happens |
 |---|---|
 | `containerId` | Destroys old event bindings, updates container, reinitializes on new container |
+| `captcha` | Resets the current captcha widget, updates the form's `data-captcha-type`, clears the `.captcha` container, and re-renders with the new type if reCAPTCHA is loaded |
 | `ajax` | Stores the value — read at runtime in `_submit()`, no reinit needed |
 | `beforePost` | Stores the value — read at runtime, no reinit needed |
 | `onSuccess` | Stores the value — read at runtime in `_post()`, no reinit needed |
 | `onError` | Stores the value — read at runtime in `_post()`, no reinit needed |
 
 ```js
-// Update callbacks
-WowForm.get('newsletter').set('onSuccess', function (form, resp) {
-    alert('Thanks for subscribing!');
+// Invisible captcha (default)
+new WowForm('newsletter', {
+    containerId: '#newsletter-signup',
+    onSuccess: function (form, resp) {
+        alert('Thanks for subscribing!');
+    },
 });
+
+// Checkbox captcha
+new WowForm('feedback', {
+    containerId: '#feedback-form',
+    captcha: 'checkbox',
+    onSuccess: function (form, resp) {
+        alert('Feedback received!');
+    },
+});
+
+// Switch captcha type at runtime
+WowForm.get('newsletter').set('captcha', 'checkbox');
 
 // Chain multiple updates
 WowForm.get('newsletter')
+    .set('captcha', 'checkbox')
     .set('onSuccess', function (form, resp) { alert('Done!'); })
     .set('onError', function (form, resp) { alert('Failed'); })
     .set('beforePost', function (form, data) { return data + '&source=footer'; });
@@ -156,11 +206,20 @@ new WowForm('apply', {
 #### Example
 
 ```js
-// AJAX form (default)
+// AJAX form with invisible captcha (default)
 new WowForm('newsletter', {
     containerId: '#newsletter-signup',
     onSuccess: function (form, resp) {
         $('#newsletter-signup').html('<p>Thanks!</p>');
+    },
+});
+
+// AJAX form with checkbox captcha
+new WowForm('contact', {
+    containerId: '#contact-form',
+    captcha: 'checkbox',
+    onSuccess: function (form, resp) {
+        $('#contact-form').html('<p>Message sent!</p>');
     },
 });
 
@@ -218,6 +277,7 @@ When created via WowPopup, the default `onSuccess` toggles `.popup-default` / `.
 |---|---|---|---|
 | `name` | string | Same as popup name | WowForm instance name, used for registry and reset-on-hide lookup |
 | `containerId` | string | Same as `popupId` | Selector for the element wrapping the `<form>` |
+| `captcha` | string | `'invisible'` | reCAPTCHA type: `'invisible'` or `'checkbox'` |
 | `beforePost` | function | `null` | Modify data before submission. Signature depends on `ajax` mode (see WowForm) |
 | `onSuccess` | function(form, resp) | Toggles `.popup-default` / `.popup-thanks` | Called on `resp.success === true`. AJAX mode only |
 | `onError` | function(form, resp) | `null` | Called on failure. AJAX mode only |
@@ -257,6 +317,7 @@ Automatically shows the popup after a delay. Skipped if another popup is already
 ```js
 // Update form config (destroys old WowForm, creates new one)
 WowPopup.get('march').set('form', {
+    captcha: 'checkbox',
     onSuccess: function (form, resp) { alert('Sent!'); },
     onError: function (form, resp) { alert('Failed'); },
 });
@@ -272,7 +333,7 @@ WowPopup.get('march').set('onShow', function (popup) { console.log('opened'); })
 
 // Chain multiple updates
 WowPopup.get('march')
-    .set('form', { onSuccess: fn })
+    .set('form', { captcha: 'checkbox', onSuccess: fn })
     .set('toggleClasses', '.cta-btn')
     .set('resetOnHide', false)
     .set('onShow', function () { console.log('hi'); });
@@ -300,6 +361,7 @@ Reusable Blade partial for rendering lead capture forms. Include anywhere with `
 | `smart_id` | string | No | `''` | Smart ID for tracking (hidden field) |
 | `in_popup` | bool | No | `false` | Set to `true` when the form is inside a `WowPopup` — skips standalone `WowForm` init |
 | `ajax` | bool | No | `true` | When `false`, initializes `WowForm` with `ajax: false` for native full-page submission. Only applies when `in_popup` is falsy (popup forms are configured via `WowPopup`) |
+| `captcha` | string | No | `'invisible'` | reCAPTCHA type: `'invisible'` or `'checkbox'`. Controls which `<x-inputs.captcha-type>` hidden field is rendered and which captcha type is passed to `WowForm`. Only applies when `in_popup` is falsy (popup forms are configured via `WowPopup`) |
 | `action` | string | No | `'/submitLead'` | Form action URL |
 | `hidden_fields` | array | No | `[]` | Additional hidden fields as `['name' => 'value', ...]` |
 | `rows` | array | No | Default fields | Override default field rows entirely |
@@ -352,13 +414,14 @@ When `rows` is not provided, the form renders these default rows:
 
 ### Built-in behaviour
 
-- `_token` (CSRF), `source`, and `smart_id` hidden fields are always rendered
+- `_token` (CSRF), `source`, `smart_id`, and captcha-type hidden fields are always rendered
+- The captcha-type hidden field is rendered via `<x-inputs.captcha-type>` — outputs `type="v2_checkbox"` when `captcha` is `'checkbox'`, otherwise `type="v2_invisible"`
 - `tel` fields automatically get the mask `(999) 999-9999` and matching pattern
 - The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
 - All other selects use the `options` array from the field definition
 - Every select starts with an empty disabled/hidden placeholder option
 - When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`. If `ajax` is `false`, the instance is created with `{ ajax: false }`
-- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally. Use the `ajax` option in `WowPopup`'s `form` sub-options instead
+- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally. Use the `ajax`, `captcha` and other options in `WowPopup`'s `form` sub-options instead
 
 ### Usage examples
 
@@ -490,6 +553,27 @@ When `rows` is not provided, the form renders these default rows:
 ])
 ```
 
+#### Checkbox captcha
+
+```blade
+@include('partials.template-form', [
+    'source'  => 'feedback-page',
+    'form_id' => 'feedback',
+    'captcha' => 'checkbox',
+])
+```
+
+#### Checkbox captcha with native submission
+
+```blade
+@include('partials.template-form', [
+    'source'  => 'apply-page',
+    'form_id' => 'apply',
+    'ajax'    => false,
+    'captcha' => 'checkbox',
+])
+```
+
 ---
 
 ## template-popup.blade.php
@@ -504,7 +588,7 @@ Include with `@include` for simple usage or `@component` when you need to inject
 |---|---|---|---|---|
 | `name` | string | **Yes** | — | Unique popup identifier. Used for `#popup-{name}`, `WowPopup` instance name, and the JS variable `popup_{name}` |
 | `i` | string | No | `''` | Image root path, available as `data-imgroot` on the popup element |
-| `form` | bool / array | No | `false` | When `true`, renders `template-form` with `source` and `form_id` defaulting to `$name`. When an array, passes those values as `template-form` parameters (merged with defaults). `in_popup` is always set to `true` |
+| `form` | bool / array | No | `false` | When `true`, renders `template-form` with `source` and `form_id` defaulting to `$name`. When an array, passes those values as [template-form parameters](#template-formbladephp) (merged with defaults). `in_popup` is always set to `true`. The `captcha` value, when present, is also forwarded to the JS `WowPopup` initialization |
 
 ### Slots
 
@@ -679,6 +763,7 @@ The `scripts` slot renders after the popup initialization script. Use `set()` to
     jQuery(document).ready(function($){
         popup_march
             .set('form', {
+                captcha: 'checkbox',
                 beforePost: function(form, data) {
                     return data + '&campaign=march';
                 },
@@ -733,6 +818,19 @@ The `scripts` slot renders after the popup initialization script. Use `set()` to
             .set('beforePost', function(form, data) {
                 return data + '&ref=banner';
             });
+    });
+    </script>
+@endslot
+```
+
+#### Switching captcha type via `WowForm.get()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        // Switch an existing form to checkbox captcha
+        WowForm.get('march').set('captcha', 'checkbox');
     });
     </script>
 @endslot
@@ -873,6 +971,18 @@ new WowForm('newsletter', {
 });
 ```
 
+### Standalone form with checkbox captcha
+
+```js
+new WowForm('feedback', {
+    containerId: '#feedback-form',
+    captcha: 'checkbox',
+    onSuccess: function (form, resp) {
+        $('#feedback-form').html('<p>Thanks for your feedback!</p>');
+    },
+});
+```
+
 ### Standalone native form (no AJAX)
 
 ```js
@@ -892,6 +1002,12 @@ new WowForm('apply', {
 WowForm.get('contact').set('ajax', false);
 ```
 
+### Switch captcha type at runtime
+
+```js
+WowForm.get('contact').set('captcha', 'checkbox');
+```
+
 ### Popup without a form
 
 ```js
@@ -904,6 +1020,19 @@ The simplest way — `form: true` creates a WowForm with default options. On suc
 
 ```js
 new WowPopup('request', { form: true });
+```
+
+### Popup with checkbox captcha
+
+```js
+new WowPopup('contact', {
+    form: {
+        captcha: 'checkbox',
+        onSuccess: function (form, resp) {
+            alert('Message sent!');
+        },
+    },
+});
 ```
 
 ### Popup with custom form options
@@ -946,8 +1075,9 @@ Create a popup with default form handling, then override specific options later.
 // Initialize with defaults
 var popup_march = new WowPopup('march', { form: true });
 
-// Override form callbacks later
+// Override form callbacks and switch to checkbox captcha later
 popup_march.set('form', {
+    captcha: 'checkbox',
     beforePost: function (form, data) {
         return data + '&source=website';
     },
@@ -1018,6 +1148,7 @@ new WowForm('inquiry', {
 new WowPopup('promo', {
     form: {
         name: 'promo-signup',
+        captcha: 'checkbox',
         onSuccess: function (form, resp) {
             console.log('Form ' + form.name + ' submitted');
         },
@@ -1075,6 +1206,9 @@ if (WowScrollLock.isLocked()) {
 WowPopup.get('contact').set('onShow', function () { console.log('opened'); });
 WowForm.get('newsletter').set('onSuccess', function () { alert('done'); });
 
+// Switch captcha type at runtime
+WowForm.get('newsletter').set('captcha', 'checkbox');
+
 // Switch submission mode at runtime
 WowForm.get('newsletter').set('ajax', false);
 
@@ -1110,11 +1244,13 @@ WowForm.get('newsletter').destroy();
 ### Form
 
 ```html
-<form method="post" action="/submitLead" class="uni-style">
+<form method="post" action="/submitLead" class="uni-style" data-captcha-type="invisible">
 
     <input type="hidden" name="_token" value="...">
     <input type="hidden" name="source" value="{source}">
     <input type="hidden" name="smart_id" value="{smart_id}">
+    <!-- Rendered by <x-inputs.captcha-type> -->
+    <input type="hidden" name="captcha_type" value="v2_invisible">
 
     <div class="form-row flex">
         <!-- Text input -->
@@ -1157,5 +1293,6 @@ WowForm.get('newsletter').destroy();
 | `focused` | `.field-wrapper` | Input inside is focused |
 | `has-value` | `.field-wrapper` | Input has a non-empty value |
 | `validation-error` | `.field-wrapper` | Input failed native validation |
+| `captcha-error` | `.captcha` | Checkbox captcha was not checked before submit |
 | `captcha-rendered` | `form` | reCAPTCHA has been rendered on this form |
 | `recaptcha-loaded` | `html` | reCAPTCHA script has loaded |

@@ -140,6 +140,10 @@ form.uni-style .form-field .focused input {
     border-color: var(--focus-border);
     border-width: 2px;
 }
+form.uni-style .captcha.captcha-error {
+    border: 2px solid var(--error-border);
+    border-radius: 4px; 
+}
 @media screen and (max-width: 567px) {
     form.uni-style {
         width: calc(100% - 25px);

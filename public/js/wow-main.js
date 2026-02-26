@@ -4,14 +4,23 @@
 
 var WowRecaptcha = (function () {
 
-    var sitekey  = null;
+    var _keys    = { invisible: null, checkbox: null };
     var loaded   = false;
     var loading  = false;
     var observer = null;
 
-    function init(key) {
-        sitekey = key;
+    function init(keys) {
+        if (typeof keys === 'string') {
+            _keys.invisible = keys;
+        } else if (keys && typeof keys === 'object') {
+            if (keys.invisible) _keys.invisible = keys.invisible;
+            if (keys.checkbox)  _keys.checkbox  = keys.checkbox;
+        }
         _observe();
+    }
+
+    function getSitekey(type) {
+        return _keys[type] || _keys.invisible || _keys.checkbox || null;
     }
 
     function isLoaded() {
@@ -24,16 +33,28 @@ var WowRecaptcha = (function () {
             var $captchaEl = $form.find('.captcha');
             if (!$captchaEl.length) return;
 
-            var captchaId = grecaptcha.render($captchaEl[0], {
+            var type    = $form.data('captcha-type') || 'invisible';
+            var sitekey = getSitekey(type);
+            if (!sitekey) return;
+
+            var renderOpts = {
                 'sitekey' : sitekey,
-                'size'    : 'invisible',
                 'callback': function () {
                     $form.trigger('captcha:resolved');
                 },
-            });
+            };
+
+            if (type === 'invisible') {
+                renderOpts.size = 'invisible';
+            }
+
+            var captchaId = grecaptcha.render($captchaEl[0], renderOpts);
 
             $form.addClass('captcha-rendered');
             $form.attr('data-captcha-id', captchaId);
+
+            // Enable submit immediately for checkbox (user checks it manually)
+            // For invisible, enable once rendered (captcha executes on submit)
             $form.find(':submit').prop('disabled', false);
         });
     }
@@ -43,7 +64,6 @@ var WowRecaptcha = (function () {
         if (loading) return;
         loading = true;
 
-        // Ensure callback is reachable as a flat global for reCAPTCHA's onload
         window.WowRecaptchaOnLoad = onLoad;
 
         var tag   = document.createElement('script');
@@ -73,13 +93,17 @@ var WowRecaptcha = (function () {
         });
     }
 
-    // Auto-init from <html data-sitekey="...">
-    var _key = document.documentElement.getAttribute('data-sitekey');
-    if (_key) {
-        $(function () { init(_key); });
+    // Auto-init from <html data-sitekey="..." data-sitekey_cb="...">
+    var _el  = document.documentElement;
+    var _sk  = _el.getAttribute('data-sitekey');
+    var _scb = _el.getAttribute('data-sitekey_cb');
+    if (_sk || _scb) {
+        $(function () {
+            init({ invisible: _sk, checkbox: _scb });
+        });
     }
 
-    return { init: init, isLoaded: isLoaded, onLoad: onLoad, renderForms: renderForms, load: _loadScript };
+    return { init: init, getSitekey: getSitekey, isLoaded: isLoaded, onLoad: onLoad, renderForms: renderForms, load: _loadScript };
 })();
 
 
@@ -143,6 +167,7 @@ var WowForm = (function () {
         this.options = $.extend({
             containerId : '#form-' + name,
             ajax        : true,
+            captcha     : 'invisible',   // 'invisible' | 'checkbox'
             beforePost  : null,
             onSuccess   : null,
             onError     : null,
@@ -161,6 +186,9 @@ var WowForm = (function () {
     WowForm.prototype._init = function () {
         var self = this;
         var cid  = self.containerId;
+
+        // Stamp captcha type on the form so WowRecaptcha.renderForms() picks it up
+        $(cid + ' form[method="post"]').attr('data-captcha-type', self.options.captcha);
 
         // Input masks
         $(cid + ' :input').inputmask({ showMaskOnHover: false, removeMaskOnSubmit: true });
@@ -200,19 +228,31 @@ var WowForm = (function () {
             var token     = typeof captchaId !== 'undefined' ? grecaptcha.getResponse(captchaId) : null;
 
             if (token) {
+                // Token exists — submit regardless of captcha type
                 self._submit($form, captchaId);
             } else if (typeof captchaId !== 'undefined') {
-                grecaptcha.execute(captchaId);
-                $form.one('captcha:resolved', function () {
-                    self._submit($form, captchaId);
-                });
+                if (self.options.captcha === 'checkbox') {
+                    // Checkbox mode — user hasn't checked it yet, highlight and bail
+                    self.processing = false;
+                    $form.find('.captcha').addClass('captcha-error');
+                } else {
+                    // Invisible mode — programmatically execute
+                    grecaptcha.execute(captchaId);
+                    $form.one('captcha:resolved', function () {
+                        self._submit($form, captchaId);
+                    });
+                }
             } else {
+                // No captcha on this form
                 self._submit($form, null);
             }
         });
     };
 
     WowForm.prototype._submit = function ($form, captchaId) {
+        // Clear checkbox error highlight on successful submit
+        $form.find('.captcha').removeClass('captcha-error');
+
         if (this.options.ajax) {
             this._post($form, captchaId);
         } else {
@@ -274,6 +314,7 @@ var WowForm = (function () {
         if (!$form.length) return;
         $form[0].reset();
         $(this.containerId).find('.field-wrapper').removeClass('focused has-value validation-error');
+        $(this.containerId).find('.captcha').removeClass('captcha-error');
         $(this.containerId).find('select').each(function () {
             if ($(this).find('option').length === 1) {
                 $(this).closest('.field-wrapper').addClass('has-value');
@@ -296,11 +337,24 @@ var WowForm = (function () {
                 _instances[oldName] = this;
                 break;
 
+            case 'captcha':
+                // Re-stamp the form and force re-render on next renderForms() call
+                var $form = $(this.containerId).find('form');
+                if ($form.length) {
+                    var oldCaptchaId = $form.data('captcha-id');
+                    this._resetCaptcha(oldCaptchaId);
+                    $form.attr('data-captcha-type', value);
+                    $form.removeClass('captcha-rendered').removeAttr('data-captcha-id');
+                    $form.find('.captcha').empty().removeClass('captcha-error');
+                    $form.find(':submit').prop('disabled', true);
+                    if (WowRecaptcha.isLoaded()) WowRecaptcha.renderForms();
+                }
+                break;
+
             case 'ajax':
             case 'beforePost':
             case 'onSuccess':
             case 'onError':
-                // Read directly from this.options at runtime, no reinit needed
                 break;
         }
 
@@ -325,7 +379,6 @@ var WowForm = (function () {
 
 var WowPopup = (function () {
 
-    // Patch jQuery show/hide/toggle to fire events (used for external toggle capture)
     $.each(['show', 'hide', 'toggle'], function (i, ev) {
         var orig = $.fn[ev];
         $.fn[ev] = function () {
@@ -491,7 +544,6 @@ var WowPopup = (function () {
             case 'onHide':
             case 'resetOnHide':
             case 'popupId':
-                // These are read directly from this.options at runtime, no reinit needed
                 break;
         }
 
