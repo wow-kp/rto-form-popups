@@ -112,11 +112,11 @@ new WowForm(name, options);
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `containerId` | string | `'#form-{name}'` | Selector for the element wrapping the `<form>` |
-| `ajax` | boolean | `true` | When `true`, submits via `$.post` and expects a JSON response. When `false`, performs a traditional full-page form submission |
+| `ajax` | boolean | `true` | When `true`, submits via `$.ajax` and expects a JSON response. When `false`, performs a traditional full-page form submission |
 | `captcha` | string | `'invisible'` | reCAPTCHA type: `'invisible'` or `'checkbox'`. Determines which sitekey is used and how captcha validation is handled on submit |
 | `beforePost` | function | `null` | **AJAX mode** — `function(form, data)`: receives serialized form data, return modified string. **Native mode** — `function(form, $form)`: receives the jQuery form element for DOM manipulation (e.g. appending hidden fields) before submit |
 | `onSuccess` | function(form, resp) | `null` | Called when the server returns `resp.success === true`. AJAX mode only |
-| `onError` | function(form, resp) | `null` | Called on `resp.success === false` or request failure. `resp` is `null` on network failure. AJAX mode only |
+| `onError` | function(form, resp) | `null` | Called on `resp.success === false`, Laravel validation failure (422), or network error. On a 422, field errors are also applied as native HTML5 validation messages before this callback fires. `resp` is `null` on network failure. AJAX mode only |
 
 #### Captcha behaviour by type
 
@@ -131,7 +131,7 @@ new WowForm(name, options);
 |---|---|
 | `WowForm.get(name)` | Static. Returns the WowForm instance by name, or `null` |
 | `set(key, value)` | Update a single option at runtime. Returns `this` for chaining. See Set behaviour below |
-| `reset()` | Reset the form, field states, captcha error highlight and captcha widget |
+| `reset()` | Reset the form, field states, server validation messages, captcha error highlight and captcha widget |
 | `destroy()` | Unbind all events and remove from registry |
 
 #### `set()` behaviour
@@ -184,7 +184,9 @@ WowForm.get('newsletter').set('ajax', false);
 
 **AJAX mode** (`ajax: true`, default)
 
-The form is submitted via `$.post`. The server must return JSON. A successful response must include `{ "success": true }`. Any other response triggers the error flow. `onSuccess` and `onError` callbacks are called accordingly.
+The form is submitted via `$.ajax` with an `Accept: application/json` header. The server must return JSON. A successful response must include `{ "success": true }`. Any other response triggers the error flow. `onSuccess` and `onError` callbacks are called accordingly.
+
+Laravel's `$request->validate()` is supported out of the box — on validation failure, Laravel returns a 422 with `{ "errors": { "field": ["message", ...] } }`. WowForm automatically stamps each field with its first error message using the native HTML5 constraint validation API (matching browser-native tooltip behaviour), then calls `onError` with the full response.
 
 **Native mode** (`ajax: false`)
 
@@ -280,7 +282,7 @@ When created via WowPopup, the default `onSuccess` toggles `.popup-default` / `.
 | `captcha` | string | `'invisible'` | reCAPTCHA type: `'invisible'` or `'checkbox'` |
 | `beforePost` | function | `null` | Modify data before submission. Signature depends on `ajax` mode (see WowForm) |
 | `onSuccess` | function(form, resp) | Toggles `.popup-default` / `.popup-thanks` | Called on `resp.success === true`. AJAX mode only |
-| `onError` | function(form, resp) | `null` | Called on failure. AJAX mode only |
+| `onError` | function(form, resp) | `null` | Called on failure or Laravel 422 validation error. AJAX mode only |
 
 #### AutoShow sub-options (`autoShow: { ... }`)
 
@@ -1292,7 +1294,7 @@ WowForm.get('newsletter').destroy();
 | `scrolllock-on` | `body` | Added when a popup is open |
 | `focused` | `.field-wrapper` | Input inside is focused |
 | `has-value` | `.field-wrapper` | Input has a non-empty value |
-| `validation-error` | `.field-wrapper` | Input failed native validation |
+| `validation-error` | `.field-wrapper` | Input failed native or server-side validation |
 | `captcha-error` | `.captcha` | Checkbox captcha was not checked before submit |
 | `captcha-rendered` | `form` | reCAPTCHA has been rendered on this form |
 | `recaptcha-loaded` | `html` | reCAPTCHA script has loaded |

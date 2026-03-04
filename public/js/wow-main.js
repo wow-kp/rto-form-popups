@@ -209,6 +209,13 @@ var WowForm = (function () {
             $(this).parent('.field-wrapper').toggleClass('has-value', !!$(this).val());
         });
 
+        // Clear server-set validation messages as the user corrects each field
+        $(document).on('input.' + self.name + ' change.' + self.name, cid + ' form :input', function () {
+            if (this.validity.customError) {
+                this.setCustomValidity('');
+            }
+        });
+
         // Validation error marking
         document.querySelectorAll(cid + ' input, ' + cid + ' select, ' + cid + ' textarea')
             .forEach(function (el) {
@@ -269,25 +276,38 @@ var WowForm = (function () {
             data = self.options.beforePost(self, data) || data;
         }
 
-        $.post(url, data, function (resp) {
-            if (resp.success) {
-                if (typeof self.options.onSuccess === 'function') {
-                    self.options.onSuccess(self, resp);
+        $.ajax({
+            url     : url,
+            method  : 'POST',
+            data    : data,
+            // Tells Laravel to return JSON errors instead of a redirect on 422
+            headers : { 'Accept': 'application/json' },
+            success : function (resp) {
+                if (resp.success) {
+                    if (typeof self.options.onSuccess === 'function') {
+                        self.options.onSuccess(self, resp);
+                    }
+                } else {
+                    self._resetCaptcha(captchaId);
+                    self._focusFirstError();
+                    if (typeof self.options.onError === 'function') {
+                        self.options.onError(self, resp);
+                    }
                 }
-            } else {
+                self.processing = false;
+            },
+            error : function (xhr) {
                 self._resetCaptcha(captchaId);
-                self._focusFirstError();
-                if (typeof self.options.onError === 'function') {
-                    self.options.onError(self, resp);
+                self.processing = false;
+
+                // Laravel validation failure: 422 { message, errors: { field: [msg, ...] } }
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    self._applyServerErrors($form, xhr.responseJSON.errors);
                 }
-            }
-            self.processing = false;
-        }, 'json').fail(function () {
-            self._resetCaptcha(captchaId);
-            self.processing = false;
-            if (typeof self.options.onError === 'function') {
-                self.options.onError(self, null);
-            }
+                if (typeof self.options.onError === 'function') {
+                    self.options.onError(self, xhr.responseJSON || null);
+                }
+            },
         });
     };
 
@@ -296,6 +316,33 @@ var WowForm = (function () {
             this.options.beforePost(this, $form);
         }
         $form[0].submit();
+    };
+
+    /**
+     * Applies Laravel validation errors as native HTML5 constraint validation
+     * messages. Laravel returns errors as arrays of strings per field; only
+     * the first message is used, matching browser behaviour (one error at a
+     * time). reportValidity() is called on the first errored field only to
+     * avoid tooltip flickering across multiple fields.
+     */
+    WowForm.prototype._applyServerErrors = function ($form, errors) {
+        var $firstField = null;
+
+        $.each(errors, function (fieldName, messages) {
+            var $input = $form.find('[name="' + fieldName + '"]');
+            if (!$input.length) return;
+
+            var message = Array.isArray(messages) ? messages[0] : messages;
+
+            $input[0].setCustomValidity(message);
+            $input.closest('.field-wrapper').addClass('validation-error');
+
+            if (!$firstField) $firstField = $input;
+        });
+
+        if ($firstField) {
+            $firstField[0].reportValidity();
+        }
     };
 
     WowForm.prototype._resetCaptcha = function (captchaId) {
@@ -313,6 +360,10 @@ var WowForm = (function () {
         var $form = $(this.containerId).find('form');
         if (!$form.length) return;
         $form[0].reset();
+        // Clear any server-set custom validity messages
+        $form.find(':input').each(function () {
+            this.setCustomValidity('');
+        });
         $(this.containerId).find('.field-wrapper').removeClass('focused has-value validation-error');
         $(this.containerId).find('.captcha').removeClass('captcha-error');
         $(this.containerId).find('select').each(function () {
