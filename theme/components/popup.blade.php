@@ -10,7 +10,8 @@
         $styles        — Custom CSS styles 
         $close_img     — Custom close button image/content
         $form_text     — Content above the form (only when $form is set)
-        $popup_default — Main popup content (only when $form is NOT set)
+        $popup_default — Content inside .popup-default. When $form is set, rendered
+                         below the form. When $form is not set, this is the sole content.
         $popup_steps   — Additional popup steps/screens
         $popup_thanks  — Thank-you content
         $scripts       — Custom JS (runs after WowPopup initialization)
@@ -51,10 +52,9 @@
                     @endisset
                     @isset($form)
                         @include(theme('components.template-form'), array_merge( ['source' => $name, 'in_popup' => true], is_array($form) ? $form : [] ))
-                    @else
-                        @isset($popup_default)
-                            {{ $popup_default }}
-                        @endisset
+                    @endisset
+                    @isset($popup_default)
+                        {{ $popup_default }}
                     @endisset
                 </div>
             </div>

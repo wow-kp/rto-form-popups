@@ -599,7 +599,7 @@ Include with `@include` for simple usage or `@component` when you need to inject
 | `$styles` | Custom styles. Rendered before the popup HTML |
 | `$close_img` | Custom close button image/content. Defaults to `×` |
 | `$form_text` | Content above the form (only when `$form` is set) |
-| `$popup_default` | Main popup content inside `.popup-default` (only when `$form` is **not** set) |
+| `$popup_default` | Content inside `.popup-default`. When `$form` is set, rendered **below** the form. When `$form` is not set, this is the sole content. |
 | `$popup_steps` | Additional popup steps/screens (e.g. scratch game, multi-step flow) |
 | `$popup_thanks` | Thank-you content inside `.popup-thanks`. Defaults to "Thank you!" |
 | `$scripts` | Custom scripts. Rendered after the popup initialization script |
@@ -659,7 +659,7 @@ Pass an array to `form` to override `template-form` parameters.
 
 #### Popup without a form
 
-When `form` is not set, use `popup_default` for content.
+When `form` is not set, use `popup_default` for all content.
 
 ```blade
 @component(theme('components.template-popup'), ['name' => 'gallery'])
@@ -669,6 +669,40 @@ When `form` is not set, use `popup_default` for content.
             <img src="/images/photo1.jpg" alt="Photo 1">
             <img src="/images/photo2.jpg" alt="Photo 2">
         </div>
+    @endslot
+
+@endcomponent
+```
+
+#### Popup with form and content below it
+
+Use `popup_default` alongside `$form` to render supplementary content beneath the form — useful for legal copy, trust badges, or secondary links.
+
+```blade
+@component(theme('components.template-popup'), [
+    'name' => 'terms',
+    'form' => [
+        'source'          => 'terms-popup',
+        'excluded_fields' => ['store', 'message'],
+        'submit_text'     => 'Send Request',
+    ],
+])
+
+    @slot('form_text')
+        <h2>Get More Information</h2>
+        <p>Fill out the form and we'll be in touch.</p>
+    @endslot
+
+    @slot('popup_default')
+        <p class="text-center f-dark-gray mt2">
+            By submitting this form you agree to our
+            <a href="/privacy-policy">Privacy Policy</a>.
+        </p>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Request received!</h3>
+        <p>We'll be in touch shortly.</p>
     @endslot
 
 @endcomponent
@@ -831,7 +865,6 @@ The `scripts` slot renders after the popup initialization script. Use `set()` to
 @slot('scripts')
     <script>
     jQuery(document).ready(function($){
-        // Switch an existing form to checkbox captcha
         WowForm.get('march').set('captcha', 'checkbox');
     });
     </script>
@@ -844,7 +877,6 @@ The `scripts` slot renders after the popup initialization script. Use `set()` to
 @slot('scripts')
     <script>
     jQuery(document).ready(function($){
-        // Remove form handling entirely
         popup_march.set('form', null);
     });
     </script>
