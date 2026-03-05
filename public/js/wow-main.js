@@ -3,6 +3,7 @@
 // =============================================================================
 
 var WowRecaptcha = (function () {
+    'use strict';
 
     var _keys    = { v2_invisible: null, v2_checkbox: null, v3: null };
     var _loaded  = false;
@@ -159,6 +160,7 @@ var WowRecaptcha = (function () {
 // =============================================================================
 
 var WowScrollLock = (function () {
+    'use strict';
 
     var _locked = false, _scrollY = 0;
 
@@ -189,6 +191,7 @@ var WowScrollLock = (function () {
 // =============================================================================
 
 var WowForm = (function () {
+    'use strict';
 
     var _emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -484,6 +487,7 @@ var WowForm = (function () {
 // =============================================================================
 
 var WowPopup = (function () {
+    'use strict';
 
     var _instances = {};
     var _active    = null;
