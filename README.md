@@ -398,7 +398,7 @@ Reusable Blade partial for rendering lead capture forms. Include anywhere with `
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `source` | string | **Yes** | — | Source identifier for the lead (hidden field) |
-| `form_id` | string | **Yes** | — | Unique form identifier. Used for `WowForm` initialization when not inside a popup |
+| `form_id` | string | **Yes** | — | Unique form identifier. Used for `WowForm` initialization when not inside a popup. Hyphens are allowed, but the generated JS variable name replaces them with underscores (e.g. `inline-contact` → `var form_inline_contact`) |
 | `smart_id` | string | No | `''` | Smart ID for tracking (hidden field) |
 | `in_popup` | bool | No | `false` | Set to `true` when the form is inside a `WowPopup` — skips standalone `WowForm` init |
 | `ajax` | bool | No | `true` | When `false`, initializes `WowForm` with `ajax: false` for native full-page submission. Only applies when `in_popup` is falsy (popup forms are configured via `WowPopup`) |

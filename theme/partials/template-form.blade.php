@@ -147,7 +147,7 @@
                         if (!$ajax)                      $form_options['ajax']    = false;
                         if ($captcha !== 'v2_invisible') $form_options['captcha'] = $captcha;
                     @endphp
-                    var form_{{$form_id}} = new WowForm('{{$form_id}}'@if(!empty($form_options)), {!! json_encode($form_options, JSON_UNESCAPED_SLASHES) !!}@endif);
+                    var form_{{str_replace('-', '_', $form_id)}} = new WowForm('{{$form_id}}'@if(!empty($form_options)), {!! json_encode($form_options, JSON_UNESCAPED_SLASHES) !!}@endif);
                 });
             </script>
         @endpush
