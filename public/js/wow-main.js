@@ -643,16 +643,17 @@ var WowPopup = (function () {
     };
 
     WowPopup.prototype.set = function (key, value) {
+        var oldFormName = key === 'form' ? this._getFormName() : null;
+    
         this.options[key] = value;
-
+    
         switch (key) {
             case 'form':
-                var oldFormName = this._getFormName();
                 var oldForm = WowForm.get(oldFormName);
                 if (oldForm) oldForm.destroy();
                 if (value) this._initForm();
                 break;
-
+    
             case 'toggleClasses':
                 $(document).off('click.' + this.name, this.toggleClass);
                 this.toggleClass = '.toggle-' + this.name + '-popup';
@@ -663,18 +664,18 @@ var WowPopup = (function () {
                     $(self.popupId).is(':visible') ? self.hide() : self.show();
                 });
                 break;
-
+    
             case 'autoShow':
                 this._initAutoShow();
                 break;
-
+    
             case 'onShow':
             case 'onHide':
             case 'resetOnHide':
             case 'popupId':
                 break;
         }
-
+    
         return this;
     };
 
