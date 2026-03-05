@@ -5,7 +5,7 @@ node_modules/
 *.log
 
 # Ignore OS-specific files
-.DS_Store
+
 Thumbs.db
 
 # Ignore environmental variables
