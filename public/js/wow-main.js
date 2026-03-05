@@ -483,15 +483,6 @@ var WowForm = (function () {
 
 var WowPopup = (function () {
 
-    $.each(['show', 'hide', 'toggle'], function (i, ev) {
-        var orig = $.fn[ev];
-        $.fn[ev] = function () {
-            var result = orig.apply(this, arguments);
-            this.trigger(ev);
-            return result;
-        };
-    });
-
     var _instances = {};
     var _active    = null;
 
@@ -507,7 +498,8 @@ var WowPopup = (function () {
             onHide        : null,
         }, options || {});
 
-        this.popupId = this.options.popupId;
+        this.popupId   = this.options.popupId;
+        this._internal = false;
 
         this.toggleClass = '.toggle-' + name + '-popup';
         if (this.options.toggleClasses) {
@@ -518,6 +510,29 @@ var WowPopup = (function () {
         this._initForm();
         this._initAutoShow();
         _instances[name] = this;
+
+        // Watch for visibility changes triggered externally (e.g. $('.popup').toggle())
+        // to keep _active tracking and scroll-lock in sync without monkey-patching jQuery.
+        var self = this;
+        var el   = document.querySelector(self.popupId);
+        if (el) {
+            self._observer = new MutationObserver(function () {
+                if (self._internal) return;
+                var visible = $(self.popupId).is(':visible');
+                if (visible && _active !== self) {
+                    if (_active) _active.hide();
+                    _active = self;
+                    WowScrollLock.lock();
+                    WowRecaptcha.isLoaded() ? WowRecaptcha.renderForms() : WowRecaptcha.load();
+                    if (typeof self.options.onShow === 'function') self.options.onShow(self);
+                } else if (!visible && _active === self) {
+                    _active = null;
+                    WowScrollLock.unlock();
+                    if (typeof self.options.onHide === 'function') self.options.onHide(self);
+                }
+            });
+            self._observer.observe(el, { attributes: true, attributeFilter: ['style'] });
+        }
     }
 
     WowPopup.get = function (name) {
@@ -575,7 +590,10 @@ var WowPopup = (function () {
         if (_active === this) return;
         if (_active) _active.hide();
 
+        this._internal = true;
         $(this.popupId).show();
+        this._internal = false;
+
         WowScrollLock.lock();
         _active = this;
 
@@ -658,6 +676,7 @@ var WowPopup = (function () {
         if (_active === this) this.hide();
         $(document).off('.' + this.name);
         $(this.popupId).off('.' + this.name);
+        if (this._observer) this._observer.disconnect();
         delete _instances[this.name];
     };
 
