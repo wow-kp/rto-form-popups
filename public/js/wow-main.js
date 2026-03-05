@@ -371,6 +371,7 @@ var WowForm = (function () {
         if (typeof this.options.beforePost === 'function') {
             this.options.beforePost(this, $form);
         }
+        this.processing = false;
         $form[0].submit();
     };
 
