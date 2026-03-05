@@ -335,7 +335,10 @@ var WowForm = (function () {
             url     : url,
             method  : 'POST',
             data    : data,
-            headers : { 'Accept': 'application/json' },
+            headers : {
+                'Accept'       : 'application/json',
+                'X-CSRF-TOKEN' : $form.find('[name="_token"]').val(),
+            },
             success : function (resp) {
                 if (resp.success) {
                     if (typeof self.options.onSuccess === 'function') {
