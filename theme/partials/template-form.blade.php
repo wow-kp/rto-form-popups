@@ -2,7 +2,7 @@
     @php
         $action          = $action ?? '/submitLead';
         $ajax            = $ajax ?? true;
-        $captcha         = $captcha ?? 'invisible';
+        $captcha         = $captcha ?? 'v2_invisible';
         $smart_id        = $smart_id ?? '';
         $hidden_fields   = $hidden_fields ?? [];
         $rows            = $rows ?? null;
@@ -10,9 +10,6 @@
         $submit_text     = $submit_text ?? 'Submit';
         $submit_class    = $submit_class ?? '';
         $tabindex_start  = $tabindex_start ?? 40;
-
-        // Map captcha option to component type
-        $captcha_type = $captcha === 'checkbox' ? 'v2_checkbox' : 'v2_invisible';
 
         // Default rows
         $default_rows = [
@@ -58,7 +55,7 @@
         {{-- Required hidden fields --}}
         <input type="hidden" name="source" value="{{ $source }}">
         <input type="hidden" name="smart_id" value="{{ $smart_id }}">
-        <x-inputs.captcha-type type="{{ $captcha_type }}" />
+        <x-inputs.captcha-type type="{{ $captcha }}" />
 
         {{-- Additional hidden fields --}}
         @foreach ($hidden_fields as $h_name => $h_value)
@@ -126,8 +123,10 @@
 
         {{-- Captcha + Submit --}}
         <div class="form-action">
-            <div class="captcha"></div>
-            <button type="submit" class="button inline-flex items-center justify-center border-none uppercase relative avenir-black fit text-center {{ $submit_class }}" disabled tabindex="{{ ++$tabindex }}">
+            @if ($captcha !== 'v3')
+                <div class="captcha"></div>
+            @endif
+            <button type="submit" class="button inline-flex items-center justify-center border-none uppercase relative avenir-black fit text-center {{ $submit_class }}"{{ $captcha === 'v3' ? '' : ' disabled' }} tabindex="{{ ++$tabindex }}">
                 {{ $submit_text }}
             </button>
         </div>
@@ -139,8 +138,8 @@
                 jQuery(document).ready(function($){
                     @php
                         $form_options = [];
-                        if (!$ajax) $form_options['ajax'] = false;
-                        if ($captcha === 'checkbox') $form_options['captcha'] = 'checkbox';
+                        if (!$ajax)                      $form_options['ajax']    = false;
+                        if ($captcha !== 'v2_invisible') $form_options['captcha'] = $captcha;
                     @endphp
                     var form_{{$form_id}} = new WowForm('{{$form_id}}'@if(!empty($form_options)), {!! json_encode($form_options, JSON_UNESCAPED_SLASHES) !!}@endif);
                 });
