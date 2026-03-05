@@ -451,7 +451,26 @@ When `rows` is not provided, the form renders these default rows:
 | `options` | array | `[]` | Key-value pairs for `select` type (except `store`, which uses `$stores`) |
 | `inputmask` | string | Auto for `tel` | Inputmask data attribute |
 | `pattern` | string | Auto for `tel` | HTML pattern attribute |
-| `attributes` | string | `''` | Raw extra HTML attributes |
+| `attributes` | array | `[]` | Extra HTML attributes as `['key' => 'value', ...]`. Only whitelisted keys are rendered — unknown keys are silently dropped. Boolean attributes (e.g. `disabled`) should use an empty string value: `['disabled' => '']`. |
+
+#### `attributes` whitelist
+
+Only the following keys are accepted. Any key not in this list is ignored:
+
+| Key | Example use |
+|---|---|
+| `disabled` | `['disabled' => '']` |
+| `readonly` | `['readonly' => '']` |
+| `placeholder` | `['placeholder' => 'e.g. John']` |
+| `autocomplete` | `['autocomplete' => 'given-name']` |
+| `maxlength` | `['maxlength' => '100']` |
+| `min` | `['min' => '0']` |
+| `max` | `['max' => '9999']` |
+| `step` | `['step' => '0.01']` |
+| `class` | `['class' => 'extra-class']` |
+| `data-*` | Any `data-` prefixed key is allowed: `['data-foo' => 'bar']`, etc. |
+
+> **Note:** `attributes` must always be an array. Passing a plain string is no longer supported and will render nothing.
 
 ### Built-in behaviour
 

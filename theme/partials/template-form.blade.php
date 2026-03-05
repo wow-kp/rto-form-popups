@@ -75,7 +75,13 @@
                         $inputmask = $type === 'tel' ? "'mask': '(999) 999-9999'" : ($field['inputmask'] ?? null);
                         $pattern   = $type === 'tel' ? '\(\d{3}\) \d{3}-\d{4}'   : ($field['pattern'] ?? null);
                         $options   = $field['options'] ?? [];
-                        $extra     = $field['attributes'] ?? '';
+                        // Whitelist-sanitized attributes — keeps only known-safe keys,
+                        // escapes both key and value. 'attributes' must be an array, never a string.
+                        $allowed   = ['disabled', 'readonly', 'placeholder', 'autocomplete', 'maxlength', 'min', 'max', 'step', 'class'];
+                        $extra     = collect($field['attributes'] ?? [])
+                                        ->filter(fn($v, $k) => in_array($k, $allowed) || str_starts_with($k, 'data-'))
+                                        ->map(fn($v, $k) => e($k) . '="' . e($v) . '"')
+                                        ->implode(' ');
                         $tabindex++;
                     @endphp
                     <div class="form-field">
