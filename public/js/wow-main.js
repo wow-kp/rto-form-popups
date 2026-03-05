@@ -418,9 +418,7 @@ var WowForm = (function () {
         $(this.containerId).find('.field-wrapper').removeClass('focused has-value validation-error');
         $(this.containerId).find('.captcha').removeClass('captcha-error');
         $(this.containerId).find('select').each(function () {
-            if ($(this).find('option').length === 1) {
-                $(this).closest('.field-wrapper').addClass('has-value');
-            }
+            $(this).closest('.field-wrapper').toggleClass('has-value', !!$(this).val());
         });
         this._resetCaptcha($form.data('captcha-id'));
         $form.removeClass('captcha-executed');
