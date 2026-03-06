@@ -28,11 +28,11 @@
     }
 @endphp
 @if(!empty($name))
-    @push('styles')
-        @isset($styles)
-            {{ $styles }}
-        @endisset
-    @endpush
+    @isset($styles)
+        @push('styles')
+                {{ $styles }}
+        @endpush
+    @endisset
     <section id="popup-{{$name}}" class="popup fixed top-0 left-0 flex justify-center items-center overflow-hidden z4 cont-full" data-imgroot="{{$i}}" data-slideout-ignore style="display: none">
         <div class="popup-overlay absolute top-0 left-0 cont-full"></div>
         <div class="popup-content fit relative">
@@ -51,7 +51,7 @@
                         {{ $form_text }}
                     @endisset
                     @isset($form)
-                        @include(theme('components.template-form'), array_merge( ['source' => $name, 'in_popup' => true], is_array($form) ? $form : [] ))
+                        @include(theme('partials.template-form'), array_merge( ['source' => $name, 'in_popup' => true], is_array($form) ? $form : [] ))
                     @endisset
                     @isset($popup_default)
                         {{ $popup_default }}

@@ -10,7 +10,7 @@ Lightweight system for managing popups and forms — includes jQuery modules for
 - [WowForm](#wowform)
 - [WowPopup](#wowpopup)
 - [template-form.blade.php](#template-formbladephp)
-- [template-popup.blade.php](#template-popupbladephp)
+- [popup.blade.php](#popupbladephp)
 - [JS Usage Examples](#js-usage-examples)
 - [Expected HTML Structure](#expected-html-structure)
 
@@ -658,7 +658,7 @@ Only the following keys are accepted. Any key not in this list is ignored:
 
 ---
 
-## template-popup.blade.php
+## popup.blade.php
 
 Reusable Blade component for rendering popups with optional forms. Generates the popup HTML structure and initializes `WowPopup` via JS. Supports per-page customisation using `set()` in a separate script block.
 
@@ -687,7 +687,7 @@ Include with `@include` for simple usage or `@component` when you need to inject
 ### File location
 
 ```
-resources/views/frontend/{theme_name}/components/template-popup.blade.php
+resources/views/frontend/{theme_name}/components/popup.blade.php
 ```
 
 ### Usage examples
@@ -695,7 +695,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Minimal popup with form (all defaults)
 
 ```blade
-@component(theme('components.template-popup'), ['name' => 'simple', 'form' => true])
+@component(theme('components.popup'), ['name' => 'simple', 'form' => true])
 
     @slot('form_text')
         <h2>Contact Us</h2>
@@ -713,7 +713,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Popup with custom form options
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'quote',
     'form' => [
         'source'          => 'quote-page',
@@ -739,7 +739,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Popup with v3 captcha
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'contact',
     'form' => [
         'source'          => 'contact-popup',
@@ -764,7 +764,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Popup with custom callbacks via set()
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'march',
     'form' => [
         'source'          => 'march-promo',
@@ -808,7 +808,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Popup without a form (gallery / info)
 
 ```blade
-@component(theme('components.template-popup'), ['name' => 'gallery'])
+@component(theme('components.popup'), ['name' => 'gallery'])
 
     @slot('popup_default')
         <h2>Product Gallery</h2>
@@ -825,7 +825,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Popup with form and content below it
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'terms',
     'form' => [
         'source'          => 'terms-popup',
@@ -857,7 +857,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### With image root and custom styles
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'august',
     'i'    => '/themes/rent2own/promos/25/aug/images',
     'form' => [
@@ -890,7 +890,7 @@ resources/views/frontend/{theme_name}/components/template-popup.blade.php
 #### Using `@include` (no slots needed)
 
 ```blade
-@include(theme('components.template-popup'), [
+@include(theme('components.popup'), [
     'name' => 'simple',
     'form' => true,
 ])
@@ -901,7 +901,7 @@ When using `@include`, the popup renders with empty default/thanks content. Use 
 #### Customizing with `set()` via the scripts slot
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'march',
     'form' => ['source' => 'march-promo'],
 ])
@@ -1030,7 +1030,7 @@ When using `@include`, the popup renders with empty default/thanks content. Use 
 #### Popup with scratch-card game
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'scratch',
     'i'    => $i . '/scratch',
     'form' => [
@@ -1092,7 +1092,7 @@ When using `@include`, the popup renders with empty default/thanks content. Use 
 #### Popup with fully custom form rows
 
 ```blade
-@component(theme('components.template-popup'), [
+@component(theme('components.popup'), [
     'name' => 'feedback',
     'form' => [
         'source' => 'feedback-form',
