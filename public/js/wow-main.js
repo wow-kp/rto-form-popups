@@ -101,6 +101,8 @@ var WowRecaptcha = (function () {
                 return;
             }
 
+            if (!_loaded) return;
+
             var $captchaEl = $form.find('.captcha');
             if (!$captchaEl.length) return;
 
