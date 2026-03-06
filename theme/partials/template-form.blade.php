@@ -130,7 +130,7 @@
         {{-- Captcha + Submit --}}
         <div class="form-action">
             @if ($captcha !== 'v3')
-                <div class="captcha"></div>
+                <div id="{{$form_id}}-captcha" class="captcha"></div>
             @endif
             <button type="submit" class="button flex items-center justify-center border-none uppercase relative avenir-black fit text-center {{ $submit_class }}"{{ $captcha === 'v3' ? '' : ' disabled' }} tabindex="{{ ++$tabindex }}">
                 {{ $submit_text }}

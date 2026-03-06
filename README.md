@@ -236,48 +236,6 @@ new WowForm('apply', {
 
 > **Note:** `HTMLFormElement.submit()` does not re-fire the `submit` event, so there is no risk of an infinite loop. It also skips HTML5 constraint validation, but this is safe because validation already ran when the original event fired.
 
-#### Example
-
-```js
-// AJAX form with v2_invisible captcha (default)
-new WowForm('newsletter', {
-    containerId: '#newsletter-signup',
-    onSuccess: function (form, resp) {
-        $('#newsletter-signup').html('<p>Thanks!</p>');
-    },
-});
-
-// AJAX form with v2_checkbox captcha
-new WowForm('contact', {
-    containerId: '#contact-form',
-    captcha: 'v2_checkbox',
-    onSuccess: function (form, resp) {
-        $('#contact-form').html('<p>Message sent!</p>');
-    },
-});
-
-// AJAX form with v3 captcha
-new WowForm('contact', {
-    containerId: '#contact-form',
-    captcha: 'v3',
-    onSuccess: function (form, resp) {
-        $('#contact-form').html('<p>Message sent!</p>');
-    },
-});
-
-// Native form
-new WowForm('apply', {
-    containerId: '#apply-form',
-    ajax: false,
-    beforePost: function (form, $form) {
-        $form.append('<input type="hidden" name="timezone" value="' + Intl.DateTimeFormat().resolvedOptions().timeZone + '">');
-    },
-});
-
-// Access later
-WowForm.get('newsletter').reset();
-```
-
 ---
 
 ### WowPopup
@@ -314,6 +272,8 @@ new WowPopup(name, options);
 Creates a `WowForm` instance with `containerId` defaulting to the popup element.
 
 When created via WowPopup, the default `onSuccess` toggles `.popup-default` / `.popup-thanks` inside the popup.
+
+> **Important:** The WowForm instance is registered under the **popup name**, not the `form_id` passed to `template-form`. For example, a popup named `'march'` always creates `WowForm('march', ...)`, regardless of what `form_id` is set to in the Blade template. Use `WowForm.get('march')` to access it.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
@@ -355,29 +315,25 @@ Automatically shows the popup after a delay. Skipped if another popup is already
 | `resetOnHide` | Stores the value — read at runtime on hide, no reinit needed |
 | `popupId` | Stores the value — no reinit needed |
 
-```js
-// Update form config (destroys old WowForm, creates new one)
-WowPopup.get('march').set('form', {
-    captcha: 'v2_checkbox',
-    onSuccess: function (form, resp) { alert('Sent!'); },
-    onError: function (form, resp) { alert('Failed'); },
-});
+> **Important:** `WowPopup.set('form', {...})` **destroys and recreates the entire WowForm instance**. Only use it when you need to change structural options like `captcha` type. To update callbacks (`onSuccess`, `onError`, `beforePost`) without recreating the form, use `WowForm.get(name).set(...)` instead.
 
-// Remove form
+```js
+// Change captcha type — requires full form recreation, use WowPopup.set('form')
+WowPopup.get('march').set('form', { captcha: 'v2_checkbox' });
+
+// Update callbacks only — use WowForm.get() to avoid recreating the form
+WowForm.get('march')
+    .set('onSuccess', function (form, resp) { alert('Sent!'); })
+    .set('onError', function (form, resp) { alert('Failed'); });
+
+// Remove form entirely
 WowPopup.get('march').set('form', null);
 
 // Change toggle triggers
 WowPopup.get('march').set('toggleClasses', '.new-trigger, .another-trigger');
 
-// Update callbacks
+// Update popup callbacks
 WowPopup.get('march').set('onShow', function (popup) { console.log('opened'); });
-
-// Chain multiple updates
-WowPopup.get('march')
-    .set('form', { captcha: 'v2_checkbox', onSuccess: fn })
-    .set('toggleClasses', '.cta-btn')
-    .set('resetOnHide', false)
-    .set('onShow', function () { console.log('hi'); });
 ```
 
 #### Built-in behaviour
@@ -385,7 +341,7 @@ WowPopup.get('march')
 - Clicking `.toggle-{name}-popup` (and any `toggleClasses`) toggles the popup
 - Clicking `.popup-close` inside the popup hides it
 - `WowScrollLock.lock()` is called on show, `unlock()` on hide
-- Patches jQuery's `.show()`, `.hide()`, `.toggle()` to fire events — so calling `$('#popup-march').toggle()` from external code is automatically captured. Scroll lock, `_active` tracking and `.popup-close` all work regardless of how the popup was shown
+- External visibility changes (e.g. `$('#popup-march').toggle()`) are captured via `MutationObserver` — scroll lock and `_active` tracking stay in sync regardless of how the popup was shown
 
 ---
 
@@ -481,8 +437,7 @@ Only the following keys are accepted. Any key not in this list is ignored:
 - The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
 - All other selects use the `options` array from the field definition
 - Every select starts with an empty disabled/hidden placeholder option
-- When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`. The `captcha` value is forwarded unless it is the default `v2_invisible`, in which case it is omitted and WowForm's own default applies
-- When `in_popup` is `true`, the script is skipped — `WowPopup` handles form creation internally
+- When `in_popup` is falsy (default), a `WowForm` instance is automatically initialized via `@push('scripts')` using `form_id`
 
 ### Usage examples
 
@@ -492,16 +447,6 @@ Only the following keys are accepted. Any key not in this list is ignored:
 @include('partials.template-form', [
     'source'  => 'contact-page',
     'form_id' => 'contact',
-])
-```
-
-#### With smart_id
-
-```blade
-@include('partials.template-form', [
-    'source'   => 'contact-page',
-    'form_id'  => 'contact',
-    'smart_id' => $smart_id,
 ])
 ```
 
@@ -515,17 +460,6 @@ Only the following keys are accepted. Any key not in this list is ignored:
 ])
 ```
 
-#### Custom submit button
-
-```blade
-@include('partials.template-form', [
-    'source'       => 'request-page',
-    'form_id'      => 'request',
-    'submit_text'  => 'Send Request',
-    'submit_class' => 'bg-red white',
-])
-```
-
 #### Extra hidden fields
 
 ```blade
@@ -533,63 +467,6 @@ Only the following keys are accepted. Any key not in this list is ignored:
     'source'        => 'promo-page',
     'form_id'       => 'promo',
     'hidden_fields' => ['campaign' => 'summer-sale', 'ref' => 'banner'],
-])
-```
-
-#### Custom action
-
-```blade
-@include('partials.template-form', [
-    'source'  => 'inquiry-page',
-    'form_id' => 'inquiry',
-    'action'  => '/custom-endpoint',
-])
-```
-
-#### Fully custom rows
-
-```blade
-@include('partials.template-form', [
-    'source'  => 'quote-page',
-    'form_id' => 'quote',
-    'rows'    => [
-        [
-            ['name' => 'company',  'label' => 'Company Name', 'required' => true],
-            ['name' => 'website',  'label' => 'Website'],
-        ],
-        [
-            ['name' => 'email', 'type' => 'email', 'label' => 'Work Email', 'required' => true],
-            ['name' => 'phone', 'type' => 'tel',   'label' => 'Phone',      'required' => true],
-        ],
-        [
-            ['name' => 'budget', 'type' => 'select', 'label' => 'Budget Range', 'required' => true,
-             'options' => ['small' => 'Under $5k', 'medium' => '$5k–$20k', 'large' => '$20k+']],
-        ],
-        [
-            ['name' => 'message', 'label' => 'Project Details'],
-        ],
-    ],
-    'submit_text'  => 'Request Quote',
-    'submit_class' => 'bg-red white',
-])
-```
-
-#### Custom select in custom rows
-
-```blade
-@include('partials.template-form', [
-    'source'  => 'feedback-page',
-    'form_id' => 'feedback',
-    'rows'    => [
-        [
-            ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
-            ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
-        ],
-        [
-            ['name' => 'department', 'type' => 'select', 'label' => 'Department', 'required' => true,
-             'options' => ['sales' => 'Sales', 'support' => 'Support', 'other' => 'Other']],
-        ],
-    ],
 ])
 ```
 
@@ -645,17 +522,6 @@ Only the following keys are accepted. Any key not in this list is ignored:
 ])
 ```
 
-#### v2_checkbox captcha with native submission
-
-```blade
-@include('partials.template-form', [
-    'source'  => 'apply-page',
-    'form_id' => 'apply',
-    'ajax'    => false,
-    'captcha' => 'v2_checkbox',
-])
-```
-
 ---
 
 ## popup.blade.php
@@ -689,6 +555,22 @@ Include with `@include` for simple usage or `@component` when you need to inject
 ```
 resources/views/frontend/{theme_name}/components/popup.blade.php
 ```
+
+### Accessing the popup instance from external scripts
+
+The component declares `var popup_{name}` inside its own `jQuery(document).ready()` callback, which means it is **locally scoped** and not accessible from external script files or separate `<script>` tags.
+
+Always use the static registry methods to reference instances outside the component:
+
+```js
+// Access popup instance
+WowPopup.get('march').show();
+
+// Access the WowForm created by the popup (registered under the popup name, not form_id)
+WowForm.get('march').set('onSuccess', function (form, resp) { ... });
+```
+
+> **Note:** The WowForm instance is always registered under the **popup name**, regardless of the `form_id` passed to `template-form`. A popup named `'march'` creates `WowForm('march', ...)`.
 
 ### Usage examples
 
@@ -761,7 +643,202 @@ resources/views/frontend/{theme_name}/components/popup.blade.php
 @endcomponent
 ```
 
-#### Popup with custom callbacks via set()
+#### Customizing callbacks via the scripts slot
+
+Use `WowForm.get()` to update callbacks. Do **not** use `WowPopup.set('form', {...})` just to set callbacks — that destroys and recreates the entire WowForm, breaking captcha and all other options.
+
+```blade
+@component(theme('components.popup'), [
+    'name' => 'march',
+    'form' => [
+        'source'          => 'march-promo',
+        'excluded_fields' => ['message'],
+        'submit_text'     => 'Get Coupon',
+    ],
+])
+
+    @slot('form_text')
+        <h2>March Promo</h2>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Thanks!</h3>
+    @endslot
+
+    @slot('scripts')
+        <script>
+        jQuery(document).ready(function($){
+            WowForm.get('march')
+                .set('beforePost', function(form, data) {
+                    return data + '&campaign=march';
+                })
+                .set('onSuccess', function(form, resp) {
+                    $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
+                })
+                .set('onError', function(form, resp) {
+                    alert('Something went wrong.');
+                });
+        });
+        </script>
+    @endslot
+
+@endcomponent
+```
+
+#### Chaining multiple `set()` calls
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowForm.get('march')
+            .set('beforePost', function(form, data) {
+                return data + '&campaign=march';
+            })
+            .set('onSuccess', function(form, resp) {
+                $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
+            })
+            .set('onError', function(form, resp) {
+                alert('Something went wrong.');
+            });
+
+        WowPopup.get('march')
+            .set('toggleClasses', '.hero-cta, .sidebar-cta')
+            .set('resetOnHide', false)
+            .set('onShow', function(popup) {
+                console.log('Popup opened');
+            })
+            .set('onHide', function(popup) {
+                console.log('Popup closed');
+            });
+    });
+    </script>
+@endslot
+```
+
+#### Adding auto-show via `set()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowPopup.get('march').set('autoShow', {
+            delay: 20000,
+            showOnce: true
+        });
+    });
+    </script>
+@endslot
+```
+
+#### Updating form callbacks independently via `WowForm.get()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowForm.get('march')
+            .set('onSuccess', function(form, resp) {
+                alert('Custom success!');
+            })
+            .set('onError', function(form, resp) {
+                alert('Custom error!');
+            })
+            .set('beforePost', function(form, data) {
+                return data + '&ref=banner';
+            });
+    });
+    </script>
+@endslot
+```
+
+#### Switching captcha type at runtime
+
+Changing captcha type requires recreating the WowForm — use `WowPopup.set('form', {...})` for this:
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowPopup.get('march').set('form', { captcha: 'v2_checkbox' });
+    });
+    </script>
+@endslot
+```
+
+#### Removing the form via `set()`
+
+```blade
+@slot('scripts')
+    <script>
+    jQuery(document).ready(function($){
+        WowPopup.get('march').set('form', null);
+    });
+    </script>
+@endslot
+```
+
+#### Popup with scratch-card game
+
+```blade
+@component(theme('components.popup'), [
+    'name' => 'scratch',
+    'i'    => $i . '/scratch',
+    'form' => [
+        'source'          => 'scratch-game',
+        'excluded_fields' => ['message', 'store'],
+        'submit_text'     => 'Play Now',
+    ],
+])
+
+    @slot('form_text')
+        <h2>Scratch & Score!</h2>
+        <p>Enter your info for a chance to win.</p>
+    @endslot
+
+    @slot('popup_steps')
+        <div class="popup-game" style="display: none;">
+            <div class="scratchpad"></div>
+        </div>
+    @endslot
+
+    @slot('popup_thanks')
+        <h3>Congratulations!</h3>
+        <p>Show this screen in store to redeem your prize.</p>
+    @endslot
+
+    @slot('scripts')
+        <script>
+        jQuery(document).ready(function($){
+            WowForm.get('scratch').set('onSuccess', function(form, resp) {
+                var imgroot = $('#popup-scratch').data('imgroot');
+                $('#popup-scratch .popup-default, #popup-scratch .popup-game').toggle();
+                $('#popup-scratch .scratchpad').wScratchPad({
+                    size: 20,
+                    bg: imgroot + '/bg.png',
+                    fg: imgroot + '/fg.png',
+                    realtime: true,
+                    scratchMove: function(e, percent) {
+                        if (percent >= 75) {
+                            $('#popup-scratch .popup-game').addClass('events-none').hide();
+                            $('#popup-scratch .popup-thanks').show();
+                            this.clear();
+                            this.reset();
+                            this.enabled = false;
+                            this.scratch = false;
+                        }
+                    },
+                    cursor: 'url("' + imgroot + '/coin.png") 70 68, default'
+                });
+            });
+        });
+        </script>
+    @endslot
+
+@endcomponent
+```
+
+#### Popup with custom callbacks via set() (march promo example)
 
 ```blade
 @component(theme('components.popup'), [
@@ -787,17 +864,16 @@ resources/views/frontend/{theme_name}/components/popup.blade.php
     @slot('scripts')
         <script>
         jQuery(document).ready(function($){
-            popup_march.set('form', {
-                beforePost: function(form, data) {
+            WowForm.get('march')
+                .set('beforePost', function(form, data) {
                     return data + '&campaign=march-madness';
-                },
-                onSuccess: function(form, resp) {
+                })
+                .set('onSuccess', function(form, resp) {
                     $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
-                },
-                onError: function(form, resp) {
+                })
+                .set('onError', function(form, resp) {
                     alert('Something went wrong. Please try again.');
-                }
-            });
+                });
         });
         </script>
     @endslot
@@ -896,238 +972,7 @@ resources/views/frontend/{theme_name}/components/popup.blade.php
 ])
 ```
 
-When using `@include`, the popup renders with empty default/thanks content. Use `set()` to customize the form behaviour.
-
-#### Customizing with `set()` via the scripts slot
-
-```blade
-@component(theme('components.popup'), [
-    'name' => 'march',
-    'form' => ['source' => 'march-promo'],
-])
-
-    @slot('form_text')
-        <h2>March Promo</h2>
-    @endslot
-
-    @slot('popup_thanks')
-        <h3>Thanks!</h3>
-    @endslot
-
-    @slot('scripts')
-        <script>
-        jQuery(document).ready(function($){
-            popup_march.set('form', {
-                beforePost: function(form, data) {
-                    return data + '&campaign=march';
-                },
-                onSuccess: function(form, resp) {
-                    $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
-                },
-                onError: function(form, resp) {
-                    alert('Something went wrong.');
-                }
-            });
-        });
-        </script>
-    @endslot
-
-@endcomponent
-```
-
-#### Chaining multiple `set()` calls
-
-```blade
-@slot('scripts')
-    <script>
-    jQuery(document).ready(function($){
-        popup_march
-            .set('form', {
-                captcha: 'v2_checkbox',
-                beforePost: function(form, data) {
-                    return data + '&campaign=march';
-                },
-                onSuccess: function(form, resp) {
-                    $('#popup-march .popup-default, #popup-march .popup-thanks').toggle();
-                },
-                onError: function(form, resp) {
-                    alert('Something went wrong.');
-                }
-            })
-            .set('toggleClasses', '.hero-cta, .sidebar-cta')
-            .set('resetOnHide', false)
-            .set('onShow', function(popup) {
-                console.log('Popup opened');
-            })
-            .set('onHide', function(popup) {
-                console.log('Popup closed');
-            });
-    });
-    </script>
-@endslot
-```
-
-#### Adding auto-show via `set()`
-
-```blade
-@slot('scripts')
-    <script>
-    jQuery(document).ready(function($){
-        popup_march.set('autoShow', {
-            delay: 20000,
-            showOnce: true
-        });
-    });
-    </script>
-@endslot
-```
-
-#### Updating form callbacks independently via `WowForm.get()`
-
-```blade
-@slot('scripts')
-    <script>
-    jQuery(document).ready(function($){
-        WowForm.get('march')
-            .set('onSuccess', function(form, resp) {
-                alert('Custom success!');
-            })
-            .set('onError', function(form, resp) {
-                alert('Custom error!');
-            })
-            .set('beforePost', function(form, data) {
-                return data + '&ref=banner';
-            });
-    });
-    </script>
-@endslot
-```
-
-#### Switching captcha type via `WowForm.get()`
-
-```blade
-@slot('scripts')
-    <script>
-    jQuery(document).ready(function($){
-        WowForm.get('march').set('captcha', 'v2_checkbox');
-    });
-    </script>
-@endslot
-```
-
-#### Removing the form via `set()`
-
-```blade
-@slot('scripts')
-    <script>
-    jQuery(document).ready(function($){
-        popup_march.set('form', null);
-    });
-    </script>
-@endslot
-```
-
-#### Popup with scratch-card game
-
-```blade
-@component(theme('components.popup'), [
-    'name' => 'scratch',
-    'i'    => $i . '/scratch',
-    'form' => [
-        'source'          => 'scratch-game',
-        'excluded_fields' => ['message', 'store'],
-        'submit_text'     => 'Play Now',
-    ],
-])
-
-    @slot('form_text')
-        <h2>Scratch & Score!</h2>
-        <p>Enter your info for a chance to win.</p>
-    @endslot
-
-    @slot('popup_steps')
-        <div class="popup-game" style="display: none;">
-            <div class="scratchpad"></div>
-        </div>
-    @endslot
-
-    @slot('popup_thanks')
-        <h3>Congratulations!</h3>
-        <p>Show this screen in store to redeem your prize.</p>
-    @endslot
-
-    @slot('scripts')
-        <script>
-        jQuery(document).ready(function($){
-            popup_scratch.set('form', {
-                onSuccess: function(wp, resp) {
-                    var imgroot = $('#popup-scratch').data('imgroot');
-                    $('#popup-scratch .popup-default, #popup-scratch .popup-game').toggle();
-                    $('#popup-scratch .scratchpad').wScratchPad({
-                        size: 20,
-                        bg: imgroot + '/bg.png',
-                        fg: imgroot + '/fg.png',
-                        realtime: true,
-                        scratchMove: function(e, percent) {
-                            if (percent >= 75) {
-                                $('#popup-scratch .popup-game').addClass('events-none').hide();
-                                $('#popup-scratch .popup-thanks').show();
-                                this.clear();
-                                this.reset();
-                                this.enabled = false;
-                                this.scratch = false;
-                            }
-                        },
-                        cursor: 'url("' + imgroot + '/coin.png") 70 68, default'
-                    });
-                }
-            });
-        });
-        </script>
-    @endslot
-
-@endcomponent
-```
-
-#### Popup with fully custom form rows
-
-```blade
-@component(theme('components.popup'), [
-    'name' => 'feedback',
-    'form' => [
-        'source' => 'feedback-form',
-        'action' => '/submitFeedback',
-        'rows'   => [
-            [
-                ['name' => 'first_name', 'label' => 'First Name', 'required' => true],
-                ['name' => 'last_name',  'label' => 'Last Name',  'required' => true],
-            ],
-            [
-                ['name' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true],
-            ],
-            [
-                ['name' => 'department', 'type' => 'select', 'label' => 'Department', 'required' => true,
-                 'options' => ['sales' => 'Sales', 'support' => 'Support', 'other' => 'Other']],
-            ],
-            [
-                ['name' => 'message', 'label' => 'Your Feedback', 'required' => true],
-            ],
-        ],
-        'submit_text' => 'Send Feedback',
-    ],
-])
-
-    @slot('form_text')
-        <h2>We'd love your feedback</h2>
-    @endslot
-
-    @slot('popup_thanks')
-        <h3>Feedback received!</h3>
-        <p>We appreciate you taking the time.</p>
-    @endslot
-
-@endcomponent
-```
+When using `@include`, the popup renders with empty default/thanks content. Use `WowForm.get()` and `WowPopup.get()` to customize behaviour.
 
 ---
 
@@ -1267,23 +1112,21 @@ new WowPopup('external', {
 });
 ```
 
-### Initialize then customize with `set()`
+### Update form callbacks after initialization
+
+Use `WowForm.get()` to update callbacks without recreating the form:
 
 ```js
-var popup_march = new WowPopup('march', { form: true });
-
-popup_march.set('form', {
-    captcha: 'v2_checkbox',
-    beforePost: function (form, data) {
-        return data + '&source=website';
-    },
-    onSuccess: function (form, resp) {
+WowForm.get('march')
+    .set('onSuccess', function (form, resp) {
         alert('Message sent!');
-    },
-    onError: function (form, resp) {
+    })
+    .set('onError', function (form, resp) {
         alert('Failed to send, please try again.');
-    },
-});
+    })
+    .set('beforePost', function (form, data) {
+        return data + '&source=website';
+    });
 ```
 
 ### Update form callbacks on the fly
@@ -1396,9 +1239,8 @@ if (WowScrollLock.isLocked()) {
 WowPopup.get('contact').set('onShow', function () { console.log('opened'); });
 WowForm.get('newsletter').set('onSuccess', function () { alert('done'); });
 
-// Switch captcha type at runtime
-WowForm.get('newsletter').set('captcha', 'v2_checkbox');
-WowForm.get('newsletter').set('captcha', 'v3');
+// Switch captcha type at runtime (recreates WowForm)
+WowPopup.get('march').set('form', { captcha: 'v2_checkbox' });
 
 // Switch submission mode at runtime
 WowForm.get('newsletter').set('ajax', false);
