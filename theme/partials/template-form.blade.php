@@ -1,4 +1,7 @@
 @if (!empty($source) && !empty($form_id))
+    @pushOnce('styles')
+	    <link rel="stylesheet" type="text/css" href="/themes/{{$account->theme}}/css/forms.css">
+    @endPushOnce
     @php
         $action          = $action ?? '/submitLead';
         $ajax            = $ajax ?? true;

@@ -22,6 +22,8 @@ Lightweight system for managing popups and forms — includes jQuery modules for
 - [Inputmask](https://github.com/RobinHerbots/Inputmask)
 - Google reCAPTCHA v2 (invisible and/or checkbox) and/or v3 — loaded automatically
 
+> **Note:** `template-form.blade.php` and `popup.blade.php` automatically push their own base stylesheets into the `styles` stack via `@pushOnce` — no manual `<link>` tags are needed. The layout must include `@stack('styles')` in the `<head>` to receive them. The files pushed are `css/forms.css` (by `template-form`) and `css/popup.css` (by `popup`), both relative to the theme's public folder.
+
 ---
 
 ## Modules

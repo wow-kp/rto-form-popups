@@ -28,9 +28,12 @@
     }
 @endphp
 @if(!empty($name))
+    @pushOnce('styles')
+        <link rel="stylesheet" type="text/css" href="/themes/{{$account->theme}}/css/popup.css">
+    @endPushOnce
     @isset($styles)
         @push('styles')
-                {{ $styles }}
+            {{ $styles }}
         @endpush
     @endisset
     <section id="popup-{{$name}}" class="popup fixed top-0 left-0 flex justify-center items-center overflow-hidden z4 cont-full" data-imgroot="{{$i}}" data-slideout-ignore style="display: none">
