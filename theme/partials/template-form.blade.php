@@ -111,6 +111,15 @@
                                         @endforeach
                                     @endif
                                 </select>
+                            @elseif ($type === 'textarea')
+                                <textarea
+                                    name="{{ $name }}"
+                                    id="{{ $id }}"
+                                    class="border border-gray avenir-medium mx-auto"
+                                    tabindex="{{ $tabindex }}"
+                                    @if ($required) required @endif
+                                    {!! $extra !!}
+                                ></textarea>
                             @else
                                 <input
                                     type="{{ $type }}"

@@ -403,7 +403,7 @@ When `rows` is not provided, the form renders these default rows:
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | **Required** | Input name attribute |
-| `type` | string | `'text'` | Supports: `text`, `email`, `tel`, `select` |
+| `type` | string | `'text'` | Supports: `text`, `email`, `tel`, `select`, `textarea` |
 | `label` | string | ucwords of `name` | Label text |
 | `required` | bool | `false` | Makes the field required |
 | `options` | array | `[]` | Key-value pairs for `select` type (except `store`, which uses `$stores`) |
