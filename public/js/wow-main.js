@@ -262,6 +262,11 @@ var WowForm = (function () {
             $(this).parent('.field-wrapper').toggleClass('has-value', !!$(this).val());
         });
 
+        $(document).on('change.' + self.name, cid + ' .file-input-overlay', function () {
+            var file = this.files[0];
+            $(this).closest('.field-wrapper').find('.file-name-text').text(file ? file.name : '');
+        });
+
         $(document).on('input.' + self.name + ' change.' + self.name, cid + ' form :input', function () {
             if (this.validity.customError) {
                 this.setCustomValidity('');
@@ -421,6 +426,7 @@ var WowForm = (function () {
             this.setCustomValidity('');
         });
         $(this.containerId).find('.field-wrapper').removeClass('focused has-value validation-error');
+        $(this.containerId).find('.file-name-text').text('');
         $(this.containerId).find('.captcha').removeClass('captcha-error');
         $(this.containerId).find('select').each(function () {
             $(this).closest('.field-wrapper').toggleClass('has-value', !!$(this).val());

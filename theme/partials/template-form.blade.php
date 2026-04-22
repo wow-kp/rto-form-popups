@@ -120,6 +120,27 @@
                                     @if ($required) required @endif
                                     {!! $extra !!}
                                 ></textarea>
+                            @elseif ($type === 'file')
+                                <div class="file-fake-input border border-gray avenir-book flex items-center clickable justify-between overflow-hidden relative">
+                                    <span class="file-name-text overflow-hidden"></span>
+                                    <span class="file-browse-text avenir-book f-white flex items-center absolute top-0 right-0 full-height">Browse</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    name="{{ $name }}"
+                                    id="{{ $id }}"
+                                    class="file-input-overlay absolute full-width full-height cont-full clickable z2"
+                                    tabindex="{{ $tabindex }}"
+                                    {!! $extra !!}
+                                >
+                                <textarea
+                                    name="{{ $name }}"
+                                    id="{{ $id }}"
+                                    class="border border-gray avenir-medium mx-auto"
+                                    tabindex="{{ $tabindex }}"
+                                    @if ($required) required @endif
+                                    {!! $extra !!}
+                                ></textarea>
                             @else
                                 <input
                                     type="{{ $type }}"

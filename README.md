@@ -403,7 +403,7 @@ When `rows` is not provided, the form renders these default rows:
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | **Required** | Input name attribute |
-| `type` | string | `'text'` | Supports: `text`, `email`, `tel`, `select`, `textarea` |
+| `type` | string | `'text'` | Supports: `text`, `email`, `tel`, `select`, `textarea`, `file` |
 | `label` | string | ucwords of `name` | Label text |
 | `required` | bool | `false` | Makes the field required |
 | `options` | array | `[]` | Key-value pairs for `select` type (except `store`, which uses `$stores`) |
@@ -436,6 +436,7 @@ Only the following keys are accepted. Any key not in this list is ignored:
 - The `captcha` value is passed directly to `<x-inputs.captcha-type type="{{ $captcha }}">` with no mapping — the component receives `v2_invisible`, `v2_checkbox`, or `v3` as-is
 - For `v3`, no `.captcha` div is rendered and the submit button is not disabled (no widget render step)
 - `tel` fields automatically get the mask `(999) 999-9999` and matching pattern
+- `file` fields render a styled fake input with a "Browse" button; the selected filename is displayed automatically via JS (no extra configuration needed)
 - The `store` select always populates from the `$stores` Eloquent collection (`$store->id`, `$store->name`)
 - All other selects use the `options` array from the field definition
 - Every select starts with an empty disabled/hidden placeholder option
@@ -1311,6 +1312,21 @@ WowForm.get('newsletter').destroy();
         </div>
     </div>
 
+        <!-- File input -->
+        <div class="form-field">
+            <div class="field-wrapper relative flex items-center">
+                <label for="resume" class="absolute z1 events-none">Resume</label>
+                <div class="file-fake-input border border-gray avenir-book flex items-center clickable justify-between overflow-hidden relative">
+                    <span class="file-name-text overflow-hidden"></span>
+                    <span class="file-browse-text avenir-book f-white flex items-center absolute top-0 right-0 full-height">Browse</span>
+                </div>
+                <input type="file" name="resume" id="resume"
+                       class="file-input-overlay absolute full-width full-height cont-full clickable z2"
+                       tabindex="43">
+            </div>
+        </div>
+    </div>
+
     <div class="form-action">
         <div class="captcha"></div>
         <button type="submit" class="button" disabled>Submit</button>
@@ -1353,3 +1369,6 @@ WowForm.get('newsletter').destroy();
 | `captcha-error` | `.captcha` | v2_checkbox captcha was not checked before submit |
 | `captcha-rendered` | `form` | reCAPTCHA has been rendered on this form (also set immediately for v3 forms, where no widget is rendered) |
 | `recaptcha-loaded` | `html` | reCAPTCHA script has loaded |
+| `file-input-overlay` | `input[type="file"]` | Invisible full-size overlay that triggers the browser file picker when the fake input is clicked |
+| `file-name-text` | `span` inside `.file-fake-input` | Updated by WowForm with the selected filename on change; cleared on `form.reset()` |
+| `file-browse-text` | `span` inside `.file-fake-input` | The "Browse" label rendered at the right edge of the fake input |

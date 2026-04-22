@@ -39,7 +39,8 @@ form.uni-style .form-field label {
 
 form.uni-style .form-field input,
 form.uni-style .form-field textarea,
-form.uni-style .form-field select {
+form.uni-style .form-field select
+form.uni-style .form-field .file-fake-input {
     font-size: 1.125em;
     height: 56px;
     background-color: var(--white);
@@ -86,9 +87,30 @@ form.uni-style .form-field input {
 }
 
 form.uni-style .form-field select,
-form.uni-style .form-field ::placeholder {
+form.uni-style .form-field ::placeholder,
+form.uni-style .form-field .file-name-text {
     opacity: 1;
     color: #262626;
+}
+
+form.uni-style .form-field .file-name-text {
+    flex: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1;
+}
+
+form.uni-style .form-field .file-browse-text {
+    background-color: #555;
+    padding: 0 16px;
+    align-self: stretch;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+form.uni-style .form-field .file-input-overlay {
+    inset: 0;
+    opacity: 0;
 }
 
 form.uni-style .form-field input:-internal-autofill-selected,
@@ -148,7 +170,8 @@ form.uni-style .form-field .has-value label {
 
 form.uni-style .form-field .focused select,
 form.uni-style .form-field .focused textarea,
-form.uni-style .form-field .focused input {
+form.uni-style .form-field .focused input,
+form.uni-style .form-field .focused .file-fake-input {
     border-color: var(--focus-border);
     border-width: 2px;
 }
