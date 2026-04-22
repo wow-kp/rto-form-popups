@@ -38,6 +38,7 @@ form.uni-style .form-field label {
 }
 
 form.uni-style .form-field input,
+form.uni-style .form-field textarea,
 form.uni-style .form-field select {
     font-size: 1.125em;
     height: 56px;
@@ -47,6 +48,11 @@ form.uni-style .form-field select {
     padding-top: 18px;
     border-radius: 12px;
     padding-left: 0;
+}
+
+form.uni-style .form-field textarea {
+    resize: none;
+    height: 120px;
 }
 
 form.uni-style .form-field select {
@@ -74,6 +80,7 @@ form.uni-style .form-field .select_box:after {
 }
 
 form.uni-style .form-field select.selected,
+form.uni-style .form-field textarea,
 form.uni-style .form-field input {
     color: var(--black);
 }
@@ -86,7 +93,10 @@ form.uni-style .form-field ::placeholder {
 
 form.uni-style .form-field input:-internal-autofill-selected,
 form.uni-style .form-field input:-webkit-autofill,
-form.uni-style .form-field input:-webkit-autofill:focus {
+form.uni-style .form-field input:-webkit-autofill:focus,
+form.uni-style .form-field textarea:-internal-autofill-selected,
+form.uni-style .form-field textarea:-webkit-autofill,
+form.uni-style .form-field textarea:-webkit-autofill:focus {
     background-color: #fff !important;
     transition: background-color 0s 600000s, color 0s 600000s !important;
 }
@@ -113,6 +123,7 @@ form.uni-style .form-field .incomplete-mask:before {
 }
 
 form.uni-style .form-field .validation-error select,
+form.uni-style .form-field .validation-error textarea,
 form.uni-style .form-field .validation-error input,
 form.uni-style .form-field .incomplete-mask input {
     border-color: var(--error-border);
@@ -136,6 +147,7 @@ form.uni-style .form-field .has-value label {
 }
 
 form.uni-style .form-field .focused select,
+form.uni-style .form-field .focused textarea,
 form.uni-style .form-field .focused input {
     border-color: var(--focus-border);
     border-width: 2px;
@@ -160,6 +172,7 @@ form.uni-style .captcha.captcha-error {
         font-size: 1em;
     }
     form.uni-style .form-field input,
+    form.uni-style .form-field textarea,
     form.uni-style .form-field select {
         font-size: 1em;
         border-radius: 13px;
